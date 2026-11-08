@@ -27,8 +27,11 @@ services:
     environment:
       # Inside the compose network the database host is the service name.
       DATABASE_URL: postgresql://baker:baker@db:5432/baker
+      PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-8000}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - uploads:/app/uploads  # local product photos (production uses Cloudflare R2)
     depends_on:
       db:
         condition: service_healthy
@@ -52,3 +55,4 @@ services:
 
 volumes:
   db_data:
+  uploads:

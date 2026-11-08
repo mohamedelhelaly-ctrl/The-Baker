@@ -4,7 +4,7 @@ import { s } from "../../lib/strings";
 import { DisplayMenu } from "./DisplayMenu";
 
 export function AppShell() {
-  const { user, logout } = useAuth();
+  const { user, logout, can } = useAuth();
   const link = "inline-flex min-h-11 items-center rounded-md px-3 font-semibold underline-offset-4 hover:underline";
 
   return (
@@ -21,6 +21,14 @@ export function AppShell() {
             {s.brand}
           </Link>
           <nav aria-label="Main" className="flex flex-wrap items-center gap-1">
+            <Link to="/menu" className={link}>
+              {s.nav.menu}
+            </Link>
+            {can("catalog_admin") && (
+              <Link to="/admin/products" className={link}>
+                {s.nav.manage}
+              </Link>
+            )}
             {user ? (
               <>
                 <Link to="/account" className={link}>

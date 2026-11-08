@@ -204,3 +204,32 @@ def test_cors_origins_tolerate_quotes_spaces_and_trailing_slash():
 
     s = Settings(cors_origins=" \"https://a.vercel.app/\" , 'http://localhost:5173' ,, ")
     assert s.cors_origin_list == ["https://a.vercel.app", "http://localhost:5173"]
+
+
+def test_production_requires_r2_storage_and_complete_credentials():
+    import pytest
+
+    from app.config import Settings
+
+    prod = {"env": "production", "jwt_secret": "x" * 40}
+    with pytest.raises(ValueError, match="STORAGE_BACKEND=r2"):
+        Settings(**prod)
+    with pytest.raises(ValueError, match="R2_BUCKET"):
+        Settings(
+            **prod,
+            storage_backend="r2",
+            r2_account_id="a",
+            r2_access_key_id="k",
+            r2_secret_access_key="s",
+            r2_public_url="https://x",
+        )
+    ok = Settings(
+        **prod,
+        storage_backend="r2",
+        r2_account_id="a",
+        r2_access_key_id="k",
+        r2_secret_access_key="s",
+        r2_bucket="b",
+        r2_public_url="https://x",
+    )
+    assert ok.storage_backend == "r2"

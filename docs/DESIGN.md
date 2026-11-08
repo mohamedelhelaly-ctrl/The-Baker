@@ -187,7 +187,7 @@ All tables follow the conventions: integer `id` primary keys, `created_at` / `up
 | `occasions` | `name`, `slug` (unique), `sort_order`, `is_archived` (e.g. Birthday, Wedding, Ramadan & Eid, Corporate) |
 | `products` | `category_id` → categories (RESTRICT), `name`, `slug` (unique), `description`, `ingredients`, `lead_time_hours`, `daily_capacity` (nullable), `is_available`, `is_archived`, `is_featured` |
 | `product_variants` | `product_id` (CASCADE), `name` ("6-inch, serves 8"), `price` (int, minor units), `sort_order`, `is_active` |
-| `product_images` | `product_id` (CASCADE), `storage_key`, `url`, **`alt_text` (NOT NULL)**, `sort_order` |
+| `product_images` | `product_id` (CASCADE), `storage_key` (unique), **`alt_text` (NOT NULL)**, `sort_order`. The public URL is computed from the key and the storage settings, so moving the bucket domain needs no data migration. |
 | `product_occasions` | `product_id`, `occasion_id` (composite PK, CASCADE) |
 | `product_availability` | `product_id` (CASCADE), `weekday` 0–6, `is_available`. No rows means available every day. |
 
@@ -554,7 +554,7 @@ Each milestone is one or more pull requests with tests. The demo is updated at t
 | # | Milestone | Covers |
 |---|---|---|
 | M0 ✅ | Scaffolding: monorepo, compose, CI, design tokens and a11y lint, auth (register, login, reset, me), and a **first deploy to Railway + Vercel**, so every later milestone ships to a live URL | C4.1, D8 |
-| M1 | Catalog: public menu, search, product page, and owner CRUD with images | C1, O1.1, O1.2 |
+| M1 ✅ | Catalog: public menu, search, product page, and owner CRUD with images | C1, O1.1, O1.2 |
 | M2 | Schedule and zones: hours, slots, closures, capacity, availability endpoints | O1.3, D6 |
 | M3 | Cart, quote, checkout, COD orders, capacity reservation | C2 |
 | M4 | Stripe test payments, webhooks, outbox emails, templates | C2.4, C3.1, O4.2, O4.3 |

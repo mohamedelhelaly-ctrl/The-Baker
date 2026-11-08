@@ -7,7 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-RUN chmod +x docker-entrypoint.sh && useradd --create-home app && chown -R app /app
+RUN chmod +x docker-entrypoint.sh && mkdir -p /app/uploads && useradd --create-home app && chown -R app /app
 USER app
 
 EXPOSE 8000

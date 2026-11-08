@@ -14,6 +14,10 @@ done
 # Optional steps must never block startup.
 python -m scripts.seed_owner || echo "WARNING: owner seed failed (non-fatal)"
 
+if [ "$SEED_DEMO" = "true" ]; then
+  python -m scripts.seed_demo || echo "WARNING: demo seed failed (non-fatal)"
+fi
+
 # Railway sets PORT; --proxy-headers makes rate limiting see the real client IP.
 exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}" \
   --proxy-headers --forwarded-allow-ips="*"

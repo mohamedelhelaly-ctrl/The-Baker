@@ -1,4 +1,5 @@
 import os
+import tempfile
 
 import psycopg
 import pytest
@@ -12,6 +13,9 @@ os.environ["DATABASE_URL"] = f"{BASE_URL}/{TEST_DB}"
 os.environ["ENV"] = "test"
 os.environ["RATE_LIMIT_ENABLED"] = "false"
 os.environ["FRONTEND_URL"] = "http://frontend.test"
+os.environ["STORAGE_BACKEND"] = "local"
+os.environ["UPLOAD_DIR"] = tempfile.mkdtemp(prefix="baker-uploads-")
+os.environ["PUBLIC_API_URL"] = "http://api.test"
 
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 
@@ -28,6 +32,8 @@ def sync_engine():
         if not exists:
             conn.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(TEST_DB)))
     eng = create_engine(get_settings().sync_database_url)
+    with eng.begin() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
     Base.metadata.drop_all(eng)
     Base.metadata.create_all(eng)
     yield eng
@@ -68,3 +74,32 @@ async def dispose_engine():
 async def client(sync_engine):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
+
+
+@pytest.fixture
+async def make_headers(client):
+    """Return auth headers for a new user of the given role."""
+    from app.core.security import create_access_token, hash_password
+    from app.crud.user import user_crud
+    from app.database import SessionLocal
+    from app.models.user import UserRole
+
+    counter = iter(range(1, 1000))
+
+    async def make(role: str = "customer") -> dict[str, str]:
+        async with SessionLocal() as db:
+            user = await user_crud.create(
+                db,
+                email=f"{role}{next(counter)}@example.com",
+                password_hash=await hash_password("password-1234"),
+                full_name=role.title(),
+                role=UserRole(role),
+            )
+        return {"Authorization": f"Bearer {create_access_token(user.id)}"}
+
+    return make
+
+
+@pytest.fixture
+async def owner(make_headers):
+    return await make_headers("owner")

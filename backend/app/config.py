@@ -39,6 +39,24 @@ class Settings(BaseSettings):
 
     rate_limit_enabled: bool = True
 
+    # Store
+    currency: str = "EGP"  # minor-unit exponent lives in core/money.py
+    business_name: str = "The Baker"
+
+    # Product photo storage: "local" (dev/tests) or "r2" (Cloudflare R2, S3-compatible)
+    storage_backend: str = "local"
+    upload_dir: str = "uploads"
+    public_api_url: str = "http://localhost:8000"  # base for local /media URLs
+    max_upload_bytes: int = 5 * 1024 * 1024
+    r2_account_id: str | None = None
+    r2_access_key_id: str | None = None
+    r2_secret_access_key: str | None = None
+    r2_bucket: str | None = None
+    r2_public_url: str | None = None  # public bucket URL or custom domain, no trailing slash
+
+    # Load the demo catalog at startup (idempotent; only if the catalog is empty)
+    seed_demo: bool = False
+
     @property
     def async_database_url(self) -> str:
         return "postgresql+asyncpg://" + _strip_scheme(self.database_url)
@@ -52,6 +70,29 @@ class Settings(BaseSettings):
         # Tolerate quotes, spaces and trailing slashes pasted into a hosting dashboard.
         cleaned = (o.strip().strip("\"'").strip().rstrip("/") for o in self.cors_origins.split(","))
         return [o for o in cleaned if o]
+
+    @model_validator(mode="after")
+    def _check_storage(self) -> "Settings":
+        if self.env == "production" and self.storage_backend != "r2":
+            # Hosted disks are wiped on every deploy, so local storage would lose uploads.
+            raise ValueError("Set STORAGE_BACKEND=r2 (and the R2_* variables) in production")
+        if self.storage_backend == "r2":
+            missing = [
+                name
+                for name in (
+                    "r2_account_id",
+                    "r2_access_key_id",
+                    "r2_secret_access_key",
+                    "r2_bucket",
+                    "r2_public_url",
+                )
+                if not getattr(self, name)
+            ]
+            if missing:
+                raise ValueError(
+                    f"STORAGE_BACKEND=r2 requires: {', '.join(m.upper() for m in missing)}"
+                )
+        return self
 
     @model_validator(mode="after")
     def _check_production_secrets(self) -> "Settings":

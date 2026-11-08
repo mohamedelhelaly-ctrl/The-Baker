@@ -10,4 +10,4 @@ target-version = "py313"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
 ignore = ["B008"]  # FastAPI's Depends() in defaults
-per-file-ignores = { "tests/*" = ["E501"] }
+per-file-ignores = { "tests/*" = ["E501"], "app/data/*" = ["E501"], "alembic/versions/*" = ["E501"] }
