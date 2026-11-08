@@ -197,3 +197,10 @@ async def test_guards_follow_permission_map(client):
 
 async def test_healthz(client):
     assert (await client.get("/healthz")).json() == {"status": "ok"}
+
+
+def test_cors_origins_tolerate_quotes_spaces_and_trailing_slash():
+    from app.config import Settings
+
+    s = Settings(cors_origins=" \"https://a.vercel.app/\" , 'http://localhost:5173' ,, ")
+    assert s.cors_origin_list == ["https://a.vercel.app", "http://localhost:5173"]

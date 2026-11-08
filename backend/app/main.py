@@ -21,6 +21,12 @@ API_PREFIX = "/api/v1"
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    logging.getLogger("baker").info(
+        "env=%s cors_origins=%s cors_origin_regex=%s",
+        settings.env,
+        settings.cors_origin_list,
+        settings.cors_origin_regex,
+    )
     yield
     await engine.dispose()
 

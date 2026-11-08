@@ -49,7 +49,9 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        # Tolerate quotes, spaces and trailing slashes pasted into a hosting dashboard.
+        cleaned = (o.strip().strip("\"'").strip().rstrip("/") for o in self.cors_origins.split(","))
+        return [o for o in cleaned if o]
 
     @model_validator(mode="after")
     def _check_production_secrets(self) -> "Settings":
