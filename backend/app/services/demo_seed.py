@@ -87,3 +87,54 @@ async def seed_demo_catalog(db: AsyncSession) -> bool:
         )
     logger.info("Seeded demo catalog: %d categories, %d products", len(CATEGORIES), len(PRODUCTS))
     return True
+
+
+async def seed_demo_schedule(db: AsyncSession) -> bool:
+    """Default hours, two-hour slots and delivery zones. Each part only fills an empty table."""
+    from datetime import time
+
+    from app.crud.schedule import schedule_crud
+    from app.data.demo_catalog import (
+        FRIDAY_SLOT_STARTS,
+        OPENING_HOURS,
+        SLOT_MAX_ORDERS,
+        SLOT_STARTS,
+        ZONES,
+    )
+    from app.models.schedule import SlotFulfilment
+
+    def t(text: str) -> time:
+        return time.fromisoformat(text)
+
+    changed = False
+    if not await schedule_crud.list_hours(db):
+        await schedule_crud.replace_hours(
+            db,
+            [
+                {"weekday": d, "opens_at": t(o), "closes_at": t(c), "is_closed": False}
+                for d, (o, c) in OPENING_HOURS.items()
+            ],
+        )
+        changed = True
+    if not await schedule_crud.list_slots(db):
+        for weekday in range(7):
+            for start in FRIDAY_SLOT_STARTS if weekday == 4 else SLOT_STARTS:
+                hour = int(start[:2])
+                await schedule_crud.create_slot(
+                    db,
+                    weekday=weekday,
+                    starts_at=t(start),
+                    ends_at=time(hour + 2),
+                    fulfilment_type=SlotFulfilment.both,
+                    max_orders=SLOT_MAX_ORDERS,
+                )
+        changed = True
+    if not await schedule_crud.list_zones(db, include_inactive=True):
+        for order, (name, fee, minimum) in enumerate(ZONES):
+            await schedule_crud.create_zone(
+                db, name=name, fee=fee * 100, min_order_amount=minimum * 100, sort_order=order
+            )
+        changed = True
+    if changed:
+        logger.info("Seeded default opening hours, time slots and delivery zones")
+    return changed

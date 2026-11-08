@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router";
+import { Route, Routes } from "react-router";
 import { GuestOnly } from "./components/auth/GuestOnly";
 import { RequireAuth } from "./components/auth/RequireAuth";
 import { RequireModule } from "./components/auth/RequireModule";
@@ -17,6 +17,9 @@ const ProductPage = lazy(() => import("./pages/menu/ProductPage"));
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
 const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"));
 const AdminProductEditPage = lazy(() => import("./pages/admin/AdminProductEditPage"));
+const AdminSchedulePage = lazy(() => import("./pages/admin/AdminSchedulePage"));
+const AdminDeliveryZonesPage = lazy(() => import("./pages/admin/AdminDeliveryZonesPage"));
+const DeliveryPage = lazy(() => import("./pages/delivery/DeliveryPage"));
 const AdminTaxonomyPage = lazy(() => import("./pages/admin/AdminTaxonomyPage"));
 const NotFoundPage = lazy(() => import("./pages/errors/NotFoundPage"));
 
@@ -29,6 +32,7 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="menu" element={<MenuPage />} />
           <Route path="products/:slug" element={<ProductPage />} />
+          <Route path="delivery" element={<DeliveryPage />} />
           <Route element={<GuestOnly />}>
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
@@ -37,14 +41,18 @@ export default function App() {
           <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route element={<RequireAuth />}>
             <Route path="account" element={<AccountPage />} />
-            <Route element={<RequireModule module="catalog_admin" />}>
-              <Route path="admin" element={<AdminLayout />}>
-                <Route index element={<Navigate to="products" replace />} />
+            <Route path="admin" element={<AdminLayout />}>
+              <Route index element={null} />
+              <Route element={<RequireModule module="catalog_admin" />}>
                 <Route path="products" element={<AdminProductsPage />} />
                 <Route path="products/new" element={<AdminProductEditPage />} />
                 <Route path="products/:id" element={<AdminProductEditPage />} />
                 <Route path="categories" element={<AdminTaxonomyPage kind="categories" />} />
                 <Route path="occasions" element={<AdminTaxonomyPage kind="occasions" />} />
+              </Route>
+              <Route element={<RequireModule module="schedule_admin" />}>
+                <Route path="schedule" element={<AdminSchedulePage />} />
+                <Route path="delivery-zones" element={<AdminDeliveryZonesPage />} />
               </Route>
             </Route>
           </Route>

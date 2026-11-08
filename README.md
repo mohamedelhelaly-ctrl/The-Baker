@@ -10,7 +10,8 @@ Design docs: [requirements](docs/REQUIREMENTS_DRAFT.md) · [system design](docs/
 
 - **M0** scaffolding and authentication: done and deployed.
 - **M1** catalog: done. Customers browse the menu (category, occasion, search, sort, pagination) and open product pages. The owner manages products, sizes and prices, photos (with required alt text), categories and occasions.
-- Next: **M2**, delivery zones, time slots and availability. See [DESIGN.md §14](docs/DESIGN.md).
+- **M2** schedule and delivery: done. Weekly opening hours, closed dates, fixed two-hour time slots with order limits, delivery zones with fees and minimum orders, and weekday rules per product. One rules engine answers "which dates and slots can this cart be booked for". Owners manage it all under **Manage shop**, staff can view it, and customers see opening hours, delivery fees and the earliest delivery or pickup date for each product.
+- Next: **M3**, cart, checkout and cash-on-delivery orders (it reserves the capacity M2 reports). See [DESIGN.md §14](docs/DESIGN.md).
 
 ## Run everything with Docker
 
@@ -26,7 +27,7 @@ docker compose up --build -d             # migrates, creates the first owner, se
 | API docs | http://localhost:8000/docs |
 | Postgres | localhost:5433 (user/password/db: `baker`) |
 
-With `SEED_DEMO=true` in `backend/.env` (the example default), about 30 demo products are loaded on first start. Sign in as the owner (`FIRST_OWNER_EMAIL` / `FIRST_OWNER_PASSWORD`) and open **Manage shop** to edit them. Product photos are stored on a Docker volume locally.
+With `SEED_DEMO=true` in `backend/.env` (the example default), about 30 demo products plus default opening hours, two-hour slots and delivery zones are loaded on first start (each part only fills an empty table). Sign in as the owner (`FIRST_OWNER_EMAIL` / `FIRST_OWNER_PASSWORD`) and open **Manage shop** to edit them. Product photos are stored on a Docker volume locally.
 
 Until email sending is added (M4), password-reset links are written to the backend log: `docker compose logs backend | grep reset-password`.
 

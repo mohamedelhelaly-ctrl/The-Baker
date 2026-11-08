@@ -22,7 +22,12 @@ export function mockFetch(routes: Record<string, { status?: number; body: unknow
   globalThis.fetch = (async (url: string, init?: RequestInit) => {
     calls.push({ url, init });
     const path = url.split("?")[0];
-    const key = Object.keys(routes).find((k) => url.endsWith(k) || path.endsWith(k));
+    const method = (init?.method ?? "GET").toUpperCase();
+    const keys = Object.keys(routes);
+    // "POST /admin/x" keys win over plain "/admin/x" keys, so one path can answer differently per method.
+    const key =
+      keys.find((k) => k.startsWith(`${method} `) && path.endsWith(k.slice(method.length + 1))) ??
+      keys.find((k) => !/^[A-Z]+ /.test(k) && (url.endsWith(k) || path.endsWith(k)));
     if (!key) throw new Error(`unmocked ${url}`);
     const { status = 200, body } = routes[key];
     return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });

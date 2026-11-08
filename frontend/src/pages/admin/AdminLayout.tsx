@@ -1,21 +1,49 @@
-import { NavLink, Outlet } from "react-router";
+import { NavLink, Navigate, Outlet, useLocation } from "react-router";
+import { useAuth } from "../../lib/auth";
+import { s } from "../../lib/strings";
 
 const link = ({ isActive }: { isActive: boolean }) =>
   `inline-flex min-h-11 items-center rounded-md px-4 font-semibold ${isActive ? "bg-primary text-primary-ink" : "border-2 border-line"}`;
 
+/** Shop management shell. Each link only shows if the role can open that area (the server still enforces it). */
 export default function AdminLayout() {
+  const { can } = useAuth();
+  const { pathname } = useLocation();
+  const catalog = can("catalog_admin");
+  const schedule = can("schedule_admin");
+
+  if (!catalog && !schedule) {
+    return <h1 className="font-display text-3xl">{s.errors.forbiddenTitle}</h1>;
+  }
+  if (pathname.replace(/\/$/, "") === "/admin") {
+    return <Navigate to={catalog ? "/admin/products" : "/admin/schedule"} replace />;
+  }
   return (
     <>
       <nav aria-label="Shop management" className="mb-8 flex flex-wrap gap-2">
-        <NavLink to="/admin/products" className={link}>
-          Products
-        </NavLink>
-        <NavLink to="/admin/categories" className={link}>
-          Categories
-        </NavLink>
-        <NavLink to="/admin/occasions" className={link}>
-          Occasions
-        </NavLink>
+        {catalog && (
+          <>
+            <NavLink to="/admin/products" className={link}>
+              Products
+            </NavLink>
+            <NavLink to="/admin/categories" className={link}>
+              Categories
+            </NavLink>
+            <NavLink to="/admin/occasions" className={link}>
+              Occasions
+            </NavLink>
+          </>
+        )}
+        {schedule && (
+          <>
+            <NavLink to="/admin/schedule" className={link}>
+              Schedule
+            </NavLink>
+            <NavLink to="/admin/delivery-zones" className={link}>
+              Delivery zones
+            </NavLink>
+          </>
+        )}
       </nav>
       <Outlet />
     </>

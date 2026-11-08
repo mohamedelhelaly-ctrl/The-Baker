@@ -13,13 +13,18 @@ export function formatMoney(minor: number, currency = "EGP", exponent = 2, local
   }
 }
 
-/** "450" or "450.50" -> 45050. Returns null when the text is not a valid positive amount. */
-export function parsePrice(text: string, exponent = 2): number | null {
+/** "450" or "450.50" -> 45050. Returns null when the text is not a valid amount (zero allowed). */
+export function parseAmount(text: string, exponent = 2): number | null {
   const match = new RegExp(`^\\d+(\\.\\d{1,${exponent}})?$`).exec(text.trim());
   if (!match) return null;
   const [whole, frac = ""] = text.trim().split(".");
-  const minor = Number(whole) * 10 ** exponent + Number(frac.padEnd(exponent, "0") || 0);
-  return minor > 0 ? minor : null;
+  return Number(whole) * 10 ** exponent + Number(frac.padEnd(exponent, "0") || 0);
+}
+
+/** Like parseAmount, but zero is rejected (a price must be positive). */
+export function parsePrice(text: string, exponent = 2): number | null {
+  const minor = parseAmount(text, exponent);
+  return minor !== null && minor > 0 ? minor : null;
 }
 
 export function toMajorString(minor: number, exponent = 2): string {

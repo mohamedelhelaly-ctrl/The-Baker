@@ -11,6 +11,7 @@ TEST_DB = "baker_test"
 BASE_URL = os.environ.get("TEST_DATABASE_BASE", "postgresql://baker:baker@localhost:5433")
 os.environ["DATABASE_URL"] = f"{BASE_URL}/{TEST_DB}"
 os.environ["ENV"] = "test"
+os.environ["ACCESS_TOKEN_MINUTES"] = "5000000"  # tests move the clock; tokens must not expire
 os.environ["RATE_LIMIT_ENABLED"] = "false"
 os.environ["FRONTEND_URL"] = "http://frontend.test"
 os.environ["STORAGE_BACKEND"] = "local"

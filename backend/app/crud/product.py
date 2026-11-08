@@ -6,6 +6,7 @@ from app.crud._taxonomy import unique_slug
 from app.models.category import Category
 from app.models.occasion import Occasion
 from app.models.product import Product, ProductImage, ProductVariant
+from app.models.schedule import ProductAvailability
 
 SORTS = {"featured", "name", "price_asc", "price_desc", "newest"}
 FULL = (
@@ -13,6 +14,7 @@ FULL = (
     selectinload(Product.images),
     selectinload(Product.occasions),
     selectinload(Product.category),
+    selectinload(Product.availability),
 )
 
 
@@ -171,6 +173,20 @@ class ProductCRUD:
 
     async def set_archived(self, db: AsyncSession, product: Product, archived: bool) -> Product:
         product.is_archived = archived
+        await db.commit()
+        return await self.get_full(db, product.id)  # type: ignore[return-value]
+
+    async def set_weekdays(
+        self, db: AsyncSession, product: Product, available: list[int]
+    ) -> Product:
+        """Store only the days the product is NOT sold. Diffs rows (unique constraint)."""
+        blocked = set(range(7)) - set(available)
+        existing = {a.weekday: a for a in product.availability}
+        for day, row in list(existing.items()):
+            if day not in blocked:
+                product.availability.remove(row)  # delete-orphan removes it
+        for day in blocked - existing.keys():
+            product.availability.append(ProductAvailability(weekday=day, is_available=False))
         await db.commit()
         return await self.get_full(db, product.id)  # type: ignore[return-value]
 

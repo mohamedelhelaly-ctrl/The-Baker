@@ -41,6 +41,7 @@ export interface StoreInfo {
   name: string;
   currency: string;
   currency_exponent: number;
+  opening_hours: HoursEntry[];
 }
 
 export interface CategoryBrief {
@@ -112,6 +113,7 @@ export interface AdminProduct {
   is_available: boolean;
   is_archived: boolean;
   is_featured: boolean;
+  available_weekdays: number[];
   category: CategoryBrief;
   occasions: Occasion[];
   variants: AdminVariant[];
@@ -127,4 +129,47 @@ export interface AdminProductListItem {
   is_featured: boolean;
   price_from: number | null;
   image: ProductImage | null;
+}
+
+// ---- schedule and availability (mirrors backend/app/schemas/schedule.py) ----
+export interface HoursEntry {
+  weekday: number; // 0 = Monday
+  opens_at: string; // "HH:MM:SS"
+  closes_at: string;
+  is_closed: boolean;
+}
+export type SlotFulfilment = "delivery" | "pickup" | "both";
+export interface TimeSlot {
+  id: number;
+  weekday: number;
+  starts_at: string;
+  ends_at: string;
+  fulfilment_type: SlotFulfilment;
+  max_orders: number;
+  is_active: boolean;
+}
+export interface Closure {
+  id: number;
+  date: string; // YYYY-MM-DD
+  reason: string;
+}
+export interface DeliveryZone {
+  id: number;
+  name: string;
+  fee: number; // minor units
+  min_order_amount: number;
+}
+export interface AdminDeliveryZone extends DeliveryZone {
+  sort_order: number;
+  is_active: boolean;
+}
+export interface DayAvailability {
+  date: string;
+  available: boolean;
+  reason: string | null;
+  message: string | null;
+}
+export interface DatesResponse {
+  earliest_date: string | null;
+  days: DayAvailability[];
 }

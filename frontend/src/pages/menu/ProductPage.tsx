@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { useApi } from "../../hooks/useApi";
+import { formatDate } from "../../lib/dates";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { leadTimeText } from "../../lib/money";
 import { s } from "../../lib/strings";
 import { useMoney } from "../../lib/store";
-import type { ProductDetail } from "../../lib/types";
+import type { DatesResponse, ProductDetail } from "../../lib/types";
 
 export default function ProductPage() {
   const { slug = "" } = useParams();
@@ -34,6 +35,10 @@ function ProductView({ product }: { product: ProductDetail }) {
   const [photo, setPhoto] = useState(0);
   const variant = product.variants.find((v) => v.id === variantId) ?? product.variants[0];
   const current = product.images[photo];
+  // Lead time is per product, so the first size answers for all sizes.
+  const first = product.variants[0]?.id;
+  const delivery = useApi<DatesResponse>(`/availability/dates?fulfilment=delivery&days=60&items=${first}`);
+  const pickup = useApi<DatesResponse>(`/availability/dates?fulfilment=pickup&days=60&items=${first}`);
 
   return (
     <article>
@@ -101,6 +106,14 @@ function ProductView({ product }: { product: ProductDetail }) {
             {variant && money(variant.price)}
           </p>
           <p className="mt-1 text-muted">{leadTimeText(product.lead_time_hours)}</p>
+          {(delivery.data || pickup.data) && (
+            <dl className="mt-3 grid grid-cols-[8rem_1fr] gap-y-1" aria-label="Earliest dates">
+              <dt className="font-semibold">Earliest delivery</dt>
+              <dd>{delivery.data?.earliest_date ? formatDate(delivery.data.earliest_date) : "No dates available soon"}</dd>
+              <dt className="font-semibold">Earliest pickup</dt>
+              <dd>{pickup.data?.earliest_date ? formatDate(pickup.data.earliest_date) : "No dates available soon"}</dd>
+            </dl>
+          )}
           <p className="mt-4 rounded-md border-2 border-line bg-surface p-3">{s.product.ordering}</p>
         </div>
       </div>

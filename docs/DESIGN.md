@@ -189,7 +189,7 @@ All tables follow the conventions: integer `id` primary keys, `created_at` / `up
 | `product_variants` | `product_id` (CASCADE), `name` ("6-inch, serves 8"), `price` (int, minor units), `sort_order`, `is_active` |
 | `product_images` | `product_id` (CASCADE), `storage_key` (unique), **`alt_text` (NOT NULL)**, `sort_order`. The public URL is computed from the key and the storage settings, so moving the bucket domain needs no data migration. |
 | `product_occasions` | `product_id`, `occasion_id` (composite PK, CASCADE) |
-| `product_availability` | `product_id` (CASCADE), `weekday` 0–6, `is_available`. No rows means available every day. |
+| `product_availability` | `product_id` (CASCADE), `weekday` 0–6 (0 = Monday), `is_available`. Only blocked days are stored, so no rows means available every day. Unique per product and weekday. |
 
 Archiving is a soft delete. Archived products disappear from the storefront but remain on past orders.
 
@@ -349,8 +349,8 @@ REST under `/api/v1`, JSON, JWT bearer auth. Every list endpoint is paginated wi
 | GET | `/categories` · `/occasions` · `/delivery-zones` | — | C1.1 |
 | GET | `/products?category=&occasion=&q=&sort=&page=` | — | C1.1 |
 | GET | `/products/{slug}` | — | C1.2 |
-| GET | `/availability/dates?variant_ids=` | — | Earliest date and open dates for the next 30 days |
-| GET | `/availability/slots?date=&fulfilment=&variant_ids=` | — | Slots with remaining capacity and the reason any slot is unavailable |
+| GET | `/availability/dates?fulfilment=&items=&days=` | — | Earliest date and a per-day verdict (with reason) for the next 30 days (up to 60). `items` is the cart as `variant_id[:qty],...`; quantities are needed to check product capacity. |
+| GET | `/availability/slots?date=&fulfilment=&items=` | — | Slots with remaining capacity and the reason any slot is unavailable. Rejects past dates and dates more than 90 days ahead. |
 | POST | `/checkout/quote` | optional | C2.3 |
 | POST | `/orders` | optional (guest OK) | C2.1–C2.4 |
 | GET | `/orders/{code}` | owner of the order, or `?t=` token | C3.2 |
@@ -547,6 +547,17 @@ Browser ──▶ Vercel (static SPA, CDN)
 
 ---
 
+### M2 implementation notes
+
+- **One engine, `services/availability.py`.** `evaluate_day` is a pure function (no database), so each rule in §4.1 has its own unit-level test, including the exact lead-time boundary. `load_context` fetches everything for a date range with a fixed number of queries, so the 60-day overview is not 60 queries. Checkout (M3) will reuse the same function and then lock the counters.
+- **Reason codes** the frontend can switch on: `closed`, `closure`, `product_unavailable_day`, `product_capacity`, `outside_hours`, `lead_time`, `slot_full`, `no_slots`. Each comes with a human message.
+- **Slots must lie inside opening hours** (otherwise `outside_hours`), and two slots may not overlap on the same weekday unless one is delivery-only and the other pickup-only.
+- **Delivery zones are deactivated, not deleted**, so old orders and saved addresses keep a valid reference. Inactive zones are hidden from customers.
+- **Roles:** staff can read the schedule and zones (`schedule_admin` read), only the owner can change them (write).
+- **Counters:** `product_daily_usage` and `slot_daily_usage` exist now and are read by the engine; M3 writes them under `SELECT ... FOR UPDATE`.
+
+---
+
 ## 14. Delivery plan
 
 Each milestone is one or more pull requests with tests. The demo is updated at the end of each milestone.
@@ -555,7 +566,7 @@ Each milestone is one or more pull requests with tests. The demo is updated at t
 |---|---|---|
 | M0 ✅ | Scaffolding: monorepo, compose, CI, design tokens and a11y lint, auth (register, login, reset, me), and a **first deploy to Railway + Vercel**, so every later milestone ships to a live URL | C4.1, D8 |
 | M1 ✅ | Catalog: public menu, search, product page, and owner CRUD with images | C1, O1.1, O1.2 |
-| M2 | Schedule and zones: hours, slots, closures, capacity, availability endpoints | O1.3, D6 |
+| M2 ✅ | Schedule and zones: hours, slots, closures, capacity, availability endpoints | O1.3, D6 |
 | M3 | Cart, quote, checkout, COD orders, capacity reservation | C2 |
 | M4 | Stripe test payments, webhooks, outbox emails, templates | C2.4, C3.1, O4.2, O4.3 |
 | M5 | Staff queue, lifecycle, delay/cancel, contact, prep sheet | S1 |

@@ -164,6 +164,7 @@ async def test_store_info_and_taxonomy_lists(client, owner):
         "name": "The Baker",
         "currency": "EGP",
         "currency_exponent": 2,
+        "opening_hours": [],
     }
     assert [c["slug"] for c in (await client.get("/api/v1/categories")).json()] == [
         "breads",

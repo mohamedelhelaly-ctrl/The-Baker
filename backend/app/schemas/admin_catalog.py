@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 from app.schemas.catalog import CategoryBrief, ImageRead, OccasionRead
 
@@ -129,6 +129,12 @@ class ProductUpdate(BaseModel):
         return _clean(v) if v is not None else v
 
 
+class AvailabilityRow(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    weekday: int
+    is_available: bool
+
+
 class ProductAdminRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -145,6 +151,14 @@ class ProductAdminRead(BaseModel):
     occasions: list[OccasionRead]
     variants: list[VariantAdminRead]
     images: list[ImageRead]
+    availability: list[AvailabilityRow] = Field(exclude=True)
+
+    @computed_field
+    @property
+    def available_weekdays(self) -> list[int]:
+        """Weekdays (0 = Monday) the product is sold. No stored rows means every day."""
+        blocked = {a.weekday for a in self.availability if not a.is_available}
+        return [d for d in range(7) if d not in blocked]
 
 
 class ProductAdminListItem(BaseModel):

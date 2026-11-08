@@ -1,10 +1,13 @@
 import { Link, Outlet } from "react-router";
 import { useAuth } from "../../lib/auth";
+import { WEEKDAYS, formatTime, hhmm } from "../../lib/dates";
+import { useStore } from "../../lib/store";
 import { s } from "../../lib/strings";
 import { DisplayMenu } from "./DisplayMenu";
 
 export function AppShell() {
   const { user, logout, can } = useAuth();
+  const { opening_hours } = useStore();
   const link = "inline-flex min-h-11 items-center rounded-md px-3 font-semibold underline-offset-4 hover:underline";
 
   return (
@@ -24,8 +27,8 @@ export function AppShell() {
             <Link to="/menu" className={link}>
               {s.nav.menu}
             </Link>
-            {can("catalog_admin") && (
-              <Link to="/admin/products" className={link}>
+            {(can("catalog_admin") || can("schedule_admin")) && (
+              <Link to="/admin" className={link}>
                 {s.nav.manage}
               </Link>
             )}
@@ -55,10 +58,37 @@ export function AppShell() {
       <main id="main" tabIndex={-1} className="mx-auto min-h-[70vh] max-w-5xl px-4 py-8">
         <Outlet />
       </main>
-      <footer className="border-t-2 border-line px-4 py-6 text-center text-muted">
-        <p>
-          {s.brand} · Demo store, no real orders.
-        </p>
+      <footer className="border-t-2 border-line px-4 py-8">
+        <div className="mx-auto grid max-w-5xl gap-8 sm:grid-cols-2">
+          {opening_hours.length > 0 && (
+            <div>
+              <h2 className="mb-2 font-display text-xl font-bold">
+                Opening hours
+              </h2>
+              <dl className="grid grid-cols-[7rem_1fr] gap-y-1">
+                {[...opening_hours]
+                  .sort((a, b) => a.weekday - b.weekday)
+                  .map((h) => (
+                    <div key={h.weekday} className="contents">
+                      <dt className="font-semibold">{WEEKDAYS[h.weekday]}</dt>
+                      <dd>{h.is_closed ? "Closed" : `${formatTime(hhmm(h.opens_at))} to ${formatTime(hhmm(h.closes_at))}`}</dd>
+                    </div>
+                  ))}
+              </dl>
+            </div>
+          )}
+          <div>
+            <h2 className="mb-2 font-display text-xl font-bold">
+              Delivery
+            </h2>
+            <p>
+              <Link to="/delivery" className="underline">
+                Delivery areas and fees
+              </Link>
+            </p>
+            <p className="mt-4 text-muted">{s.brand} · Demo store, no real orders.</p>
+          </div>
+        </div>
       </footer>
     </>
   );

@@ -9,6 +9,7 @@ from app.core.money import exponent
 from app.crud.category import category_crud
 from app.crud.occasion import occasion_crud
 from app.crud.product import product_crud
+from app.crud.schedule import schedule_crud
 from app.database import get_db
 from app.schemas.catalog import (
     CategoryRead,
@@ -24,10 +25,13 @@ router = APIRouter(tags=["catalog"])
 
 
 @router.get("/store", response_model=StoreRead)
-async def store():
+async def store(db: AsyncSession = Depends(get_db)):
     s = get_settings()
     return StoreRead(
-        name=s.business_name, currency=s.currency, currency_exponent=exponent(s.currency)
+        name=s.business_name,
+        currency=s.currency,
+        currency_exponent=exponent(s.currency),
+        opening_hours=await schedule_crud.list_hours(db),
     )
 
 

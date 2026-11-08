@@ -15,6 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 from app.models.category import Category
 from app.models.occasion import Occasion
+from app.models.schedule import ProductAvailability
 
 product_occasions = Table(
     "product_occasions",
@@ -57,6 +58,9 @@ class Product(Base):
         lazy="raise",
         cascade="all, delete-orphan",
         order_by="ProductVariant.sort_order, ProductVariant.id",
+    )
+    availability: Mapped[list["ProductAvailability"]] = relationship(
+        lazy="raise", cascade="all, delete-orphan"
     )
     images: Mapped[list["ProductImage"]] = relationship(
         back_populates="product",

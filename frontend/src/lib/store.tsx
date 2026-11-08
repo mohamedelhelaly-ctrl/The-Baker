@@ -3,7 +3,7 @@ import { api } from "./api";
 import { formatMoney } from "./money";
 import type { StoreInfo } from "./types";
 
-const FALLBACK: StoreInfo = { name: "The Baker", currency: "EGP", currency_exponent: 2 };
+const FALLBACK: StoreInfo = { name: "The Baker", currency: "EGP", currency_exponent: 2, opening_hours: [] };
 const StoreContext = createContext<StoreInfo>(FALLBACK);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -12,7 +12,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const controller = new AbortController();
     api
       .get<StoreInfo>("/store", { signal: controller.signal })
-      .then(setStore)
+      .then((info) => setStore({ ...FALLBACK, ...info })) // tolerate an older API response
       .catch(() => undefined); // keep the fallback if the API is unreachable
     return () => controller.abort();
   }, []);

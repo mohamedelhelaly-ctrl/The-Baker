@@ -317,3 +317,23 @@ PRODUCTS = [
         48,
     ),
 ]
+
+# ---- schedule defaults (weekday 0 = Monday ... 6 = Sunday) ----
+# Open 09:00-21:00; Friday opens at 13:00. Egyptian week: Friday is the quiet morning.
+OPENING_HOURS = {d: ("09:00", "21:00") for d in range(7)}
+OPENING_HOURS[4] = ("13:00", "21:00")
+
+# Fixed two-hour windows, 6 orders each
+SLOT_STARTS = ["10:00", "12:00", "14:00", "16:00", "18:00"]
+FRIDAY_SLOT_STARTS = ["14:00", "16:00", "18:00"]
+SLOT_MAX_ORDERS = 6
+
+# (name, fee EGP, minimum order EGP)
+ZONES = [
+    ("Maadi", 40, 300),
+    ("Zamalek", 50, 300),
+    ("Heliopolis", 60, 350),
+    ("Nasr City", 60, 350),
+    ("New Cairo", 80, 400),
+    ("Sheikh Zayed", 90, 450),
+]

@@ -28,6 +28,7 @@ from app.schemas.admin_catalog import (
 )
 from app.schemas.catalog import ImageRead
 from app.schemas.common import Page
+from app.schemas.schedule import ProductAvailabilityWrite
 from app.services.images import new_image_key, process_image
 from app.services.storage import get_storage
 
@@ -167,6 +168,18 @@ async def archive_product(product_id: int, db: AsyncSession = Depends(get_db)):
 @router.post("/products/{product_id}/restore", response_model=ProductAdminRead, dependencies=WRITE)
 async def restore_product(product_id: int, db: AsyncSession = Depends(get_db)):
     return await product_crud.set_archived(db, await _load_product(db, product_id), False)
+
+
+@router.put(
+    "/products/{product_id}/availability", response_model=ProductAdminRead, dependencies=WRITE
+)
+async def set_availability(
+    product_id: int, body: ProductAvailabilityWrite, db: AsyncSession = Depends(get_db)
+):
+    """Which weekdays (0 = Monday) the product is sold. All seven days clears the restriction."""
+    return await product_crud.set_weekdays(
+        db, await _load_product(db, product_id), body.available_weekdays
+    )
 
 
 # ---------- variants (sizes) ----------

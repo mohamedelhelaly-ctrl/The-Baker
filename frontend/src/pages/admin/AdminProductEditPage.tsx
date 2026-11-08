@@ -8,6 +8,7 @@ import { useApi } from "../../hooks/useApi";
 import { useFormSubmit } from "../../hooks/useFormSubmit";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { api, ApiError } from "../../lib/api";
+import { WEEKDAYS } from "../../lib/dates";
 import { parsePrice } from "../../lib/money";
 import { useStore } from "../../lib/store";
 import type { AdminCategory, AdminOccasion, AdminProduct } from "../../lib/types";
@@ -104,6 +105,7 @@ function ProductForm({ product, categories, occasions, onSaved }: {
     is_available: product?.is_available ?? true,
     is_featured: product?.is_featured ?? false,
     occasion_ids: product?.occasions.map((o) => o.id) ?? [],
+    weekdays: product?.available_weekdays ?? [0, 1, 2, 3, 4, 5, 6],
   });
   const [sizes, setSizes] = useState<SizeRow[]>([{ name: "", price: "" }]);
   const [saved, setSaved] = useState(false);
@@ -123,6 +125,7 @@ function ProductForm({ product, categories, occasions, onSaved }: {
     };
     if (product) {
       await api.patch(`/admin/products/${product.id}`, base);
+      await api.put(`/admin/products/${product.id}/availability`, { available_weekdays: f.weekdays });
       setSaved(true);
       onSaved();
       return;
@@ -132,6 +135,9 @@ function ProductForm({ product, categories, occasions, onSaved }: {
       throw new ApiError(422, "validation_error", "Check the prices.", { sizes: `Enter every price as a number such as 450 or 450.50 (${currency}).` });
     }
     const created = await api.post<AdminProduct>("/admin/products", { ...base, variants });
+    if (f.weekdays.length < 7) {
+      await api.put(`/admin/products/${created.id}/availability`, { available_weekdays: f.weekdays });
+    }
     navigate(`/admin/products/${created.id}`, { replace: true });
   });
 
@@ -170,6 +176,21 @@ function ProductForm({ product, categories, occasions, onSaved }: {
           />
         ))}
         {occasions.length === 0 && <p className="text-muted">No occasions yet. Add some under Occasions.</p>}
+      </fieldset>
+
+      <fieldset className="mb-5">
+        <legend className="mb-1 font-semibold">Days on sale</legend>
+        <p className="mb-1 text-sm text-muted">Customers cannot choose a delivery or pickup day this product is not sold.</p>
+        <div className="grid grid-cols-2 gap-x-4 sm:grid-cols-4">
+          {WEEKDAYS.map((day, i) => (
+            <CheckboxField
+              key={day}
+              label={day}
+              checked={f.weekdays.includes(i)}
+              onChange={(e) => set("weekdays", e.target.checked ? [...f.weekdays, i].sort() : f.weekdays.filter((x) => x !== i))}
+            />
+          ))}
+        </div>
       </fieldset>
 
       <CheckboxField label="Show on the menu" hint="Untick to hide the product without archiving it." checked={f.is_available} onChange={(e) => set("is_available", e.target.checked)} />

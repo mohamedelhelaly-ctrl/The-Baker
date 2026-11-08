@@ -1,3 +1,5 @@
+from datetime import time
+
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from app.core.media import media_url
@@ -66,7 +68,16 @@ class ProductDetail(BaseModel):
     images: list[ImageRead]
 
 
+class HoursRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    weekday: int
+    opens_at: time
+    closes_at: time
+    is_closed: bool
+
+
 class StoreRead(BaseModel):
     name: str
     currency: str
     currency_exponent: int
+    opening_hours: list[HoursRead] = []
