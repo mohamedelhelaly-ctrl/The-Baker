@@ -1,0 +1,54 @@
+# Local development stack: db + backend + frontend. Production runs on Railway + Vercel.
+services:
+  db:
+    image: postgres:16-alpine
+    env_file:
+      - path: ./backend/.env
+        required: true
+    environment:
+      POSTGRES_USER: baker
+      POSTGRES_PASSWORD: baker
+      POSTGRES_DB: baker
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baker -d baker"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    env_file:
+      - path: ./backend/.env
+        required: true
+    environment:
+      # Inside the compose network the database host is the service name.
+      DATABASE_URL: postgresql://baker:baker@db:5432/baker
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Vite bakes this in at build time; it must be reachable from the browser.
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  db_data:

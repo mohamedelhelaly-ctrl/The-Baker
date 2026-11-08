@@ -553,7 +553,7 @@ Each milestone is one or more pull requests with tests. The demo is updated at t
 
 | # | Milestone | Covers |
 |---|---|---|
-| M0 | Scaffolding: monorepo, compose, CI, design tokens and a11y lint, auth (register, login, reset, me), and a **first deploy to Railway + Vercel**, so every later milestone ships to a live URL | C4.1, D8 |
+| M0 ✅ | Scaffolding: monorepo, compose, CI, design tokens and a11y lint, auth (register, login, reset, me), and a **first deploy to Railway + Vercel**, so every later milestone ships to a live URL | C4.1, D8 |
 | M1 | Catalog: public menu, search, product page, and owner CRUD with images | C1, O1.1, O1.2 |
 | M2 | Schedule and zones: hours, slots, closures, capacity, availability endpoints | O1.3, D6 |
 | M3 | Cart, quote, checkout, COD orders, capacity reservation | C2 |

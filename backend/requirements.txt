@@ -1,0 +1,30 @@
+# Runtime dependencies for The Baker API (Python 3.13)
+# Install: pip install -r requirements.txt   (dev/test tools: requirements-dev.txt)
+
+# --- Web framework ---
+fastapi==0.162.2
+uvicorn[standard]==0.54.0
+python-multipart==0.0.33        # file uploads (product images)
+slowapi==0.1.10                 # rate limiting
+
+# --- Database ---
+SQLAlchemy[asyncio]==2.1.8
+asyncpg==0.32.0                 # async driver (requests)
+psycopg[binary]==3.3.8          # sync driver (Alembic, batch jobs, seed)
+alembic==1.20.1
+
+# --- Validation and config ---
+pydantic==2.14.3
+pydantic-settings==2.16.2
+email-validator==2.3.0
+
+# --- Auth ---
+PyJWT==2.15.1
+bcrypt==5.0.0
+
+# --- Integrations ---
+stripe==16.1.0                  # payments (test mode)
+httpx==0.28.1                   # Resend email API
+boto3==1.43.126                 # Cloudflare R2 (S3-compatible) storage
+pillow==13.0.0                  # image validation and re-encoding
+Jinja2==3.1.6                   # notification templates (sandboxed)

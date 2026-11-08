@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* Design tokens. Every text/background pair meets WCAG AA (4.5:1), UI borders meet 3:1. */
+:root {
+  --bg: #fffaf3;
+  --surface: #ffffff;
+  --ink: #2b1d14;
+  --ink-muted: #5e4a3d;
+  --primary: #8a4b1f;
+  --primary-ink: #ffffff;
+  --primary-hover: #6e3a15;
+  --border: #8c7767;
+  --danger: #a31621;
+  --danger-bg: #fdecee;
+  --success: #1d6a3a;
+  --success-bg: #e9f6ee;
+  --focus: #1a56db;
+}
+
+/* High contrast: pure black on white, heavier borders. */
+:root[data-contrast="high"] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --ink: #000000;
+  --ink-muted: #000000;
+  --primary: #4a2000;
+  --primary-hover: #000000;
+  --border: #000000;
+  --danger: #8a0010;
+  --danger-bg: #ffffff;
+  --success: #0b4a22;
+  --success-bg: #ffffff;
+  --focus: #0033cc;
+}
+
+:root[data-text-size="125"] { font-size: 125%; }
+:root[data-text-size="150"] { font-size: 150%; }
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-primary: var(--primary);
+  --color-primary-ink: var(--primary-ink);
+  --color-primary-hover: var(--primary-hover);
+  --color-line: var(--border);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: ui-serif, Georgia, "Times New Roman", serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.55;
+}
+
+/* Visible focus that is never clipped; scroll-margin keeps focus clear of the sticky header. */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+:target, :focus { scroll-margin-top: 6rem; }
+
+:root[data-contrast="high"] a { text-decoration: underline; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+:root[data-motion="reduce"] *, :root[data-motion="reduce"] *::before, :root[data-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
