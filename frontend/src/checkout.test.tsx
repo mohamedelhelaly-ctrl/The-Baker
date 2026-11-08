@@ -142,7 +142,9 @@ describe("cart page", () => {
 
 // ================================================================= checkout
 async function fillDelivery(user: ReturnType<typeof userEvent.setup>) {
-  await user.selectOptions(await screen.findByLabelText("Delivery area"), "1");
+  const area = await screen.findByLabelText("Delivery area");
+  await screen.findByRole("option", { name: /Maadi/ }); // the list loads after the field appears
+  await user.selectOptions(area, "1");
   await user.type(screen.getByLabelText("Street"), "12 Road 9");
   await user.type(screen.getByLabelText("Building"), "5");
   await user.type(screen.getByLabelText("Floor (optional)"), "3");

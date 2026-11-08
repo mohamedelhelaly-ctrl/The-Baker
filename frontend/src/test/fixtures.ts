@@ -36,7 +36,7 @@ export const detail: ProductDetail = {
 
 export const owner = {
   id: 9, email: "owner@demo.thebaker", full_name: "Baker Owner", phone: null, role: "owner",
-  permissions: { account: { read: true, write: true }, catalog_admin: { read: true, write: true }, schedule_admin: { read: true, write: true }, orders_queue: { read: true, write: true } },
+  permissions: { account: { read: true, write: true }, catalog_admin: { read: true, write: true }, schedule_admin: { read: true, write: true }, settings: { read: true, write: true }, orders_queue: { read: true, write: true } },
 };
 export const customer = {
   id: 5, email: "sara@example.com", full_name: "Sara Ali", phone: null, role: "customer",

@@ -217,7 +217,7 @@ Archiving is a soft delete. Archived products disappear from the storefront but 
 
 | Table | Key columns |
 |---|---|
-| `payments` | `order_id` (CASCADE), `provider` (`stripe`,`cod`), `provider_ref` (e.g. Checkout Session id, unique), `amount`, `refunded_amount`, `status`, `failure_reason` |
+| `payments` | `order_id` (CASCADE), `provider` (`paymob`, `fake`; cash orders have no row), `provider_ref` (the provider's payment id, e.g. the Paymob order id; unique), `amount`, `refunded_amount`, `status`, `failure_reason` |
 | `processed_webhook_events` | `provider`, `event_id`, unique together, so each webhook event is handled once |
 | `notifications` | `order_id` (SET NULL), `template_key`, `to_email`, `subject`, `body`, `status` enum(`pending`,`sent`,`failed`), `attempts`, `last_error`, `sent_at`. This is an outbox. |
 | `notification_templates` | `key` (unique: `order_confirmed`, `order_accepted`, `order_rejected`, `status_changed`, `order_delayed`, `order_cancelled`, `order_modified`, `password_reset`, `staff_message`), `subject`, `body`, `is_active` |
@@ -285,14 +285,14 @@ stateDiagram-v2
 **Card checkout (C2.4, C3.1)**
 
 ```
-Client                      API                                   Stripe
+Client                      API                                   Paymob
   │ POST /checkout/quote ──▶ validate + price                       │
   │ ◀── totals / errors                                             │
   │ POST /orders (Idempotency-Key) ──▶ tx: reserve capacity,        │
   │                              create order(pending_payment)      │
   │                              create Checkout Session ─────────▶│
   │ ◀── { redirect_url }                                            │
-  │ ─────────────────────────── pay on Stripe page ───────────────▶│
+  │ ─────────────────────────── pay on Paymob page ───────────────▶│
   │                              ◀── webhook checkout.session.completed
   │                              verify signature, dedupe event,
   │                              payment=paid, status=received,
@@ -312,12 +312,12 @@ All integrations sit behind small interfaces in `services/`, with a fake impleme
 
 | Interface | Methods | Production | Dev / test |
 |---|---|---|---|
-| `PaymentProvider` | `create_payment(order) → redirect_url`, `parse_webhook(req) → event`, `refund(payment, amount)` | `StripeProvider` (Checkout, **test mode**, D3) | `FakeProvider` |
+| `PaymentProvider` | `create_payment(order) → redirect_url`, `parse_webhook(req) → event`, `refund(payment, amount)` | `PaymobProvider` (Unified Checkout, **test mode**, D3) | `FakeProvider` |
 | `CashOnDelivery` | same interface, no-op redirect | built-in | built-in |
 | `EmailSender` | `send(to, subject, html, text)` | Resend (HTTP API) | Mailpit container / console |
 | `FileStorage` | `put(file) → key,url`, `delete(key)` | S3-compatible bucket (Cloudflare R2), because managed hosts have temporary disks (D8) | local disk |
 
-- **Stripe and Egypt:** Stripe does not onboard Egyptian merchants, so Stripe is a test-mode demo. A local provider such as Paymob would be added as another `PaymentProvider`, with no changes to the order logic.
+- **Stripe was removed.** It does not support Egyptian merchants. Paymob, an Egyptian provider with a free test mode, replaced it behind the same `PaymentProvider` interface, which is exactly the swap the interface was designed for.
 - **Webhooks** check the signature, deduplicate through `processed_webhook_events`, and are safe to receive more than once.
 - **Emails** are written to the `notifications` outbox inside the business transaction, then sent by a background task that retries with backoff. A failed email never rolls back an order, and the owner can see failures.
 - **Templates** use Jinja2 in a sandboxed environment with a whitelist of variables (`{{ order.code }}`, `{{ customer.name }}`, `{{ order.total }}`, `{{ tracking_url }}` …). The owner edits them with a live preview.
@@ -356,7 +356,7 @@ REST under `/api/v1`, JSON, JWT bearer auth. Every list endpoint is paginated wi
 | GET | `/orders/{code}` | owner of the order, or `?t=` token | C3.2 |
 | PATCH | `/orders/{code}` | owner of the order, or token | C3.3 |
 | POST | `/orders/{code}/cancel` | owner of the order, or token | C3.3 |
-| POST | `/payments/stripe/webhook` | Stripe signature | C2.4 |
+| POST | `/payments/paymob/webhook` | Paymob HMAC (`hmac` query parameter) | C2.4 |
 
 ### 8.2 Staff (`orders_queue`)
 
@@ -474,7 +474,7 @@ Tailwind logical utilities (`ms-`, `me-`, `ps-`, `start-`), `dir` set on `<html>
 - Password reset tokens are random, only their hash is stored, they last 30 minutes and work once. The endpoint returns the same response whether or not the email exists.
 - Guest tracking tokens: only the hash is stored, and they are compared in constant time.
 - Prices, totals, capacity and allowed transitions are always decided on the server.
-- The Stripe webhook signature is verified, and duplicate events are ignored.
+- The Paymob callback signature (HMAC-SHA512) is verified, and duplicate transactions are ignored.
 - Uploads are checked by MIME type and magic bytes (JPEG/PNG/WebP), limited to 5 MB, and re-encoded with Pillow to strip EXIF data.
 - CORS allows only the frontend origin. Secrets come only from environment variables. `.env` files are ignored by git and `.dockerignore`.
 - Staff and owner pages are never cached, and user data endpoints send `Cache-Control: no-store`.
@@ -488,7 +488,7 @@ Tailwind logical utilities (`ms-`, `me-`, `ps-`, `start-`), `dir` set on `<html>
 | Unit | pytest | Pricing, money formatting, availability rules, the state-machine table, the cancellation window (with frozen time) |
 | Integration | pytest + test Postgres (compose) + httpx | Every router: auth guards for each role, pagination, validation errors |
 | Concurrency | pytest + asyncio.gather | Last-unit capacity and last-slot races, and double-submit with the same idempotency key |
-| Payments | FakeProvider and Stripe CLI fixtures | Webhook handled once, payment expiry, refunds |
+| Payments | FakeProvider, and Paymob calls replaced by a recorder | Webhook handled once, payment expiry, refunds |
 | Frontend unit | Vitest + Testing Library | Cart reducer, checkout step validation, display preferences |
 | End-to-end | Playwright + axe | Guest card checkout, COD checkout, staff moves an order to delivered, owner adds a product |
 
@@ -505,14 +505,14 @@ CI runs on GitHub Actions with path filters (`backend/**`, `frontend/**`).
 | Frontend | compose nginx | **Vercel** project (root directory `frontend/`, Vite preset) |
 | Email | Mailpit (web UI on :8025) | Resend |
 | Files | local volume | Cloudflare R2 bucket |
-| Payments | FakeProvider or Stripe test | Stripe test mode + webhook endpoint on the Railway domain |
+| Payments | FakeProvider | Paymob test mode + callback address on the Railway domain |
 
 ```
 Browser ──▶ Vercel (static SPA, CDN)
    │
    └── fetch + Bearer JWT ──▶ Railway: FastAPI ──▶ Railway Postgres
                                    ▲    │
-              Stripe webhooks ─────┘    ├──▶ Resend (email)
+              Paymob callbacks ────┘    ├──▶ Resend (email)
                                         └──▶ R2 (product images)
 ```
 
@@ -522,7 +522,7 @@ Browser ──▶ Vercel (static SPA, CDN)
 - **`DATABASE_URL`** comes from Railway's Postgres service. `app/database.py` rewrites the scheme to `postgresql+asyncpg://` for the async engine and `postgresql+psycopg://` for the sync batch engine.
 - The pool size is set explicitly to fit the Railway Postgres connection limit, as in ARCHITECTURE_OVERVIEW §2.
 - There is **one replica**, because background tasks and the TTL cache run in-process (§7). The tasks already use `SKIP LOCKED`, so moving the cache to Redis is the only change needed to scale out.
-- Secrets are set as Railway variables: `JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `R2_*`, `FRONTEND_URL`, `CORS_ORIGINS`.
+- Secrets are set as Railway variables: `JWT_SECRET`, `PAYMOB_SECRET_KEY`, `PAYMOB_PUBLIC_KEY`, `PAYMOB_HMAC_SECRET`, `PAYMOB_INTEGRATION_ID`, `PUBLIC_API_URL`, `RESEND_API_KEY`, `R2_*`, `FRONTEND_URL`, `CORS_ORIGINS`.
 
 ### 13.2 Vercel (frontend)
 
@@ -533,7 +533,7 @@ Browser ──▶ Vercel (static SPA, CDN)
 ### 13.3 Cross-origin notes
 
 - The frontend and API are on different domains. Auth uses a **Bearer token in a header, not cookies**, so there are no third-party-cookie or `SameSite` problems, and CSRF does not apply.
-- Stripe's `success_url` and `cancel_url`, and the tracking links in emails, are built from `FRONTEND_URL` (Vercel). The webhook URL is the Railway domain.
+- The payment return address and the tracking links in emails, are built from `FRONTEND_URL` (Vercel). The webhook URL is the Railway domain.
 - The same Docker Compose stack is still used for local development and CI, so nothing depends on the hosting platform.
 
 **Seeded demo** (`scripts/seed_demo.py`, idempotent):
@@ -572,6 +572,22 @@ Browser ──▶ Vercel (static SPA, CDN)
 
 ---
 
+### M4 implementation notes
+
+- **Card flow.** The order is placed first (status `pending_payment`, capacity reserved exactly like a cash order), then the customer is sent to the provider's page. Only the provider's **signed webhook** marks an order paid; the browser returning from the payment page proves nothing. The order page polls until the confirmation arrives. Opening the payment page happens after the database transaction commits, so no row locks are held during a network call.
+- **Providers sit behind an interface** (`services/payments`): `PaymobProvider` (an Intention is created with the secret key; the customer is redirected to Unified Checkout with the public key and a client secret; the signed Transaction Processed Callback confirms payment; refunds and voids use the secret key) and `FakeProvider` (a practice page in our own frontend that feeds the same event handler, refused in production).
+- **Paymob specifics.** The callback is verified with HMAC-SHA512 over Paymob's documented, ordered list of transaction fields (`services/payments/paymob_provider.py`); the signature arrives in the `hmac` query parameter. Order lines are sent as items that add up exactly to the order total, as Paymob requires. Each payment attempt gets a fresh `special_reference` (`BK-XXXXXX-<random>`), which is how a callback is matched back to its order. A declined attempt changes nothing (the customer can retry); refund and void callbacks are ignored because we record those ourselves. Paymob offers no way to close a payment page, so a payment arriving after an order expired is refunded automatically. A same-day full refund that Paymob refuses falls back to a void. The implementation follows Paymob's published documentation and is covered by tests using a recorded stand-in; it still needs one real test payment to confirm (README step 8).
+- **Events are idempotent.** Each webhook event id is stored once (`processed_webhook_events`); a duplicate delivery, even simultaneous ones, changes nothing and sends one email.
+- **Unpaid orders expire.** After 35 minutes a background job cancels the order, closes the provider's payment page where the provider allows it, frees the capacity and tells the customer. An open payment page is reused for 31 minutes before a fresh one is created. If money still arrives for a cancelled order, or a second payment arrives for an already paid one, it is refunded automatically and recorded.
+- **Payment page could not be opened:** the order is cancelled, capacity released, and the idempotency key is freed so the customer's retry creates a fresh order rather than returning the cancelled one.
+- **Emails use an outbox.** `enqueue()` writes a `notifications` row inside the business transaction; a worker sends it. A mail outage can never roll back or block an order, retries back off (30s, 1m, 2m, 4m), after five failures the email stays visible as failed and the owner can retry it. A wake signal sends most emails within moments instead of waiting for the 15 second tick. Password reset emails use the same outbox.
+- **Editable wording.** Nine templates have built-in defaults; the owner's edits live in `notification_templates`. They are rendered in a Jinja2 **sandbox** with a fixed list of variables per email (`StrictUndefined`, so a typo or an unknown variable is rejected when saving, with a clear message). Previews render with sample data. Only the owner can edit; secrets are never stored in the database.
+- **Owner switches.** `store_settings` holds `card_enabled` and `cod_enabled` (at least one must stay on). Card is only offered when it is switched on **and** the server has a provider configured, and `/store` reports exactly which methods checkout may show.
+- **Workers** (`tasks/runner.py`) run in the API process (email outbox every 15 s plus wake-ups, order expiry every 60 s) and use `SKIP LOCKED`, so scaling to several workers later needs no change. They are switched off in tests, which call the same functions directly.
+- **Confirmation email links** are the same guest tracking links as before, so a guest who closes the page can come back from their inbox.
+
+---
+
 ## 14. Delivery plan
 
 Each milestone is one or more pull requests with tests. The demo is updated at the end of each milestone.
@@ -582,7 +598,7 @@ Each milestone is one or more pull requests with tests. The demo is updated at t
 | M1 ✅ | Catalog: public menu, search, product page, and owner CRUD with images | C1, O1.1, O1.2 |
 | M2 ✅ | Schedule and zones: hours, slots, closures, capacity, availability endpoints | O1.3, D6 |
 | M3 ✅ | Cart, quote, checkout, COD orders, capacity reservation | C2 |
-| M4 | Stripe test payments, webhooks, outbox emails, templates | C2.4, C3.1, O4.2, O4.3 |
+| M4 ✅ | Paymob (Egypt) test payments, webhooks, outbox emails, templates | C2.4, C3.1, O4.2, O4.3 |
 | M5 | Staff queue, lifecycle, delay/cancel, contact, prep sheet | S1 |
 | M6 | Tracking, modify/cancel window, refunds, account pages | C3, C4.2, C4.3, O2 |
 | M7 | Team management, settings, accessibility audit, demo seed, deploy, README polish | O3, O4, D1, D2 |

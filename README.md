@@ -12,7 +12,8 @@ Design docs: [requirements](docs/REQUIREMENTS_DRAFT.md) · [system design](docs/
 - **M1** catalog: done. Customers browse the menu (category, occasion, search, sort, pagination) and open product pages. The owner manages products, sizes and prices, photos (with required alt text), categories and occasions.
 - **M2** schedule and delivery: done. Weekly opening hours, closed dates, fixed two-hour time slots with order limits, delivery zones with fees and minimum orders, and weekday rules per product. One rules engine answers "which dates and slots can this cart be booked for". Owners manage it all under **Manage shop**, staff can view it, and customers see opening hours, delivery fees and the earliest delivery or pickup date for each product.
 - **M3** cart, checkout and cash-on-delivery orders: done. Customers add products (with an optional cake message) to a cart, then check out in five steps (delivery or pickup, date and time, contact details, payment, review). The server prices everything, shows the delivery fee and total before ordering, reserves capacity so the last cake or slot can never be sold twice, and a retried or double-clicked submit never creates two orders. Guests get a private tracking link, signed-in customers see their own orders.
-- Next: **M4**, Stripe card payments (test mode), webhooks and confirmation emails. See [DESIGN.md §14](docs/DESIGN.md).
+- **M4** card payments and emails: done. Customers can pay by card (Paymob, Egypt, test mode) or cash. A card order holds its slot while the customer pays, the provider's signed webhook confirms it, unpaid orders expire after 35 minutes and free their capacity, and money that arrives too late is refunded automatically. Confirmation emails go through a retrying outbox (Resend in production). The owner switches payment methods on and off, edits the wording of every email with a live preview, and sees an email log with retry, all under **Manage shop, Payments and emails**.
+- Next: **M5**, the staff order queue (accept, reject, status updates, contact the customer). See [DESIGN.md §14](docs/DESIGN.md).
 
 ## Run everything with Docker
 
@@ -62,6 +63,39 @@ npm run lint && npm test && npm run build
 4. Photo storage (required in production, the app refuses to start without it): `STORAGE_BACKEND=r2`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`. See below.
 5. Optional: `SEED_DEMO=true` loads the demo catalog on the first start when the catalog is empty.
 6. Generate a public domain.
+
+**Paymob (card payments in EGP, test mode)**
+
+Paymob is an Egyptian payment provider. Building and testing is free. Taking real money needs Paymob's business verification (see "Going live" below).
+
+1. **Create an account** at Paymob (<https://accept.paymob.com>, Egypt). Their checklist says account creation gives you the dashboard and the test environment. Whether test mode needs business documents is not stated in their docs, so if you are blocked, ask support@paymob.com for test access.
+2. **Switch the dashboard to Test mode** with the toggle at the top right. Keys and integrations differ between Test and Live, so stay in Test.
+3. **Copy the keys.** Settings, then Developers, **API Keys**: copy the **Secret key** (`egy_sk_test_...`), the **Public key** (`egy_pk_test_...`) and the **HMAC secret**. Only the main account user can see the HMAC secret; if it is hidden, ask support.
+4. **Copy the Integration ID.** Settings, **Payment Integrations**, with Test selected: copy the ID of an online **card** integration (the "Integration ID" column). If the list is empty, ask your Paymob account manager or support to create a test card integration.
+5. **Set the Webhook URL.** Click that integration, paste `https://<your-railway-domain>/api/v1/payments/paymob/webhook` into **Webhook URL**, and press **Save Changes**. (The app also sends this address with every payment, but setting it here is the safe belt-and-braces option; duplicate calls are harmless.)
+6. **Railway variables** (backend service). `PUBLIC_API_URL` must be your backend's public address with no trailing slash:
+   - `PAYMENT_PROVIDER=paymob`
+   - `PAYMOB_SECRET_KEY` (the `egy_sk_test_...` value)
+   - `PAYMOB_PUBLIC_KEY` (the `egy_pk_test_...` value)
+   - `PAYMOB_HMAC_SECRET`
+   - `PAYMOB_INTEGRATION_ID` (a number, no quotes)
+   - `PUBLIC_API_URL=https://<your-railway-domain>`
+
+   The app refuses to start if `PAYMENT_PROVIDER=paymob` is set without all four `PAYMOB_` values.
+7. **Check it is connected.** As the owner, open **Manage shop, Payments and emails**. It should say **Paymob (test mode)** and **Available to customers**, and it shows the callback address to paste in step 5.
+8. **Make a test payment** on the live site: add a product, check out, choose **Pay online by card**, and pay with a test card (cardholder `Test Account`, expiry `01/39`, CVV `123`): Visa `4111 1111 1111 1111` or Mastercard `5123 4567 8901 2346`. Test wallet: number `01010101010`, MPin and OTP `123456`. You return to the order page, which turns to **Received** within a few seconds.
+9. **If the order stays on "Waiting for payment"** after a successful test payment, look at the Railway logs:
+   - no line mentioning `/payments/paymob/webhook`: Paymob is not reaching us. Re-check step 5 (saved? right integration? Test mode?) and `PUBLIC_API_URL`.
+   - a warning `Paymob callback signature mismatch ... Signed string: ...`: the HMAC secret is wrong or from the other mode, or Paymob signs a slightly different field list than documented. Re-copy the secret from Test mode; if it still fails, the logged signed string (it contains no secrets) shows exactly what was computed.
+10. **Going live.** Paymob's checklist: account creation, paperwork validation, contract, risk approval, test and validation, technical approval, then live credentials. Afterwards switch the dashboard to Live, copy the **live** keys, HMAC secret and a **live** integration ID, and update the same Railway variables.
+
+Behaviour worth knowing: a declined card attempt does not cancel the order (the customer can retry on the same page); an unpaid order is cancelled after 35 minutes and its slot freed; Paymob cannot close a payment page, so a payment that still arrives after cancellation is refunded automatically; same-day full refunds fall back to a void. For local development use `PAYMENT_PROVIDER=fake` (a practice page). `PAYMENT_PROVIDER=fake` is refused in production.
+
+**Resend (emails)**
+1. Create a free Resend account and an **API key**.
+2. Railway variables: `RESEND_API_KEY` and `EMAIL_FROM` (for example `The Baker <orders@yourdomain.com>`).
+3. To email customers, verify a sending domain in Resend and use an address on it. Until then `onboarding@resend.dev` only delivers to your own Resend account email, which is enough to test with.
+4. Use **Send me a test email** on the Payments and emails screen to check the setup. Without a key, emails are only written to the server log.
 
 **Cloudflare R2 (product photos)**
 1. Cloudflare dashboard, **R2 Object Storage**, create a bucket (for example `the-baker`).

@@ -21,7 +21,9 @@ const AdminSchedulePage = lazy(() => import("./pages/admin/AdminSchedulePage"));
 const AdminDeliveryZonesPage = lazy(() => import("./pages/admin/AdminDeliveryZonesPage"));
 const CartPage = lazy(() => import("./pages/cart/CartPage"));
 const CheckoutPage = lazy(() => import("./pages/checkout/CheckoutPage"));
+const FakePayPage = lazy(() => import("./pages/payments/FakePayPage"));
 const TrackPage = lazy(() => import("./pages/orders/TrackPage"));
+const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
 const DeliveryPage = lazy(() => import("./pages/delivery/DeliveryPage"));
 const AdminTaxonomyPage = lazy(() => import("./pages/admin/AdminTaxonomyPage"));
 const NotFoundPage = lazy(() => import("./pages/errors/NotFoundPage"));
@@ -39,6 +41,7 @@ export default function App() {
           <Route path="cart" element={<CartPage />} />
           <Route path="checkout" element={<CheckoutPage />} />
           <Route path="track/:code" element={<TrackPage />} />
+          <Route path="fake-pay/:code" element={<FakePayPage />} />
           <Route element={<GuestOnly />}>
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
@@ -59,6 +62,9 @@ export default function App() {
               <Route element={<RequireModule module="schedule_admin" />}>
                 <Route path="schedule" element={<AdminSchedulePage />} />
                 <Route path="delivery-zones" element={<AdminDeliveryZonesPage />} />
+              </Route>
+              <Route element={<RequireModule module="settings" />}>
+                <Route path="payments" element={<AdminPaymentsPage />} />
               </Route>
             </Route>
           </Route>

@@ -11,12 +11,13 @@ export default function AdminLayout() {
   const { pathname } = useLocation();
   const catalog = can("catalog_admin");
   const schedule = can("schedule_admin");
+  const settings = can("settings");
 
-  if (!catalog && !schedule) {
+  if (!catalog && !schedule && !settings) {
     return <h1 className="font-display text-3xl">{s.errors.forbiddenTitle}</h1>;
   }
   if (pathname.replace(/\/$/, "") === "/admin") {
-    return <Navigate to={catalog ? "/admin/products" : "/admin/schedule"} replace />;
+    return <Navigate to={catalog ? "/admin/products" : schedule ? "/admin/schedule" : "/admin/payments"} replace />;
   }
   return (
     <>
@@ -43,6 +44,11 @@ export default function AdminLayout() {
               Delivery zones
             </NavLink>
           </>
+        )}
+        {settings && (
+          <NavLink to="/admin/payments" className={link}>
+            Payments and emails
+          </NavLink>
         )}
       </nav>
       <Outlet />

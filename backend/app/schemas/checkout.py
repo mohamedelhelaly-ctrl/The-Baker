@@ -163,3 +163,8 @@ class OrderRead(BaseModel):
 
 class OrderCreated(OrderRead):
     tracking_token: str  # guests use it to open /track/{code}?t=...
+    payment_url: str | None = None  # card orders: where to send the customer to pay
+
+
+class PaymentLink(BaseModel):
+    payment_url: str

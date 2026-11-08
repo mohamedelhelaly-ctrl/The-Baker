@@ -75,7 +75,7 @@
 |---|---|---|
 | D1 | **Accessibility (WCAG 2.2 AA) is in scope**: full keyboard use, screen-reader labels, visible focus, high-contrast and larger-text toggle, reduced motion, so the store works for elderly customers, people with limited mobility, and people who use assistive technology. | 2026-11-08 |
 | D2 | **Showcase:** a live demo with seeded demo accounts (customer, staff, owner) plus a public GitHub repo and README. | 2026-11-08 |
-| D3 | **Payments:** Stripe Checkout in test mode, with webhooks, behind a payment-gateway interface. Cash on delivery is supported alongside it. | 2026-11-08 |
+| D3 | **Payments:** Paymob (Egypt) in test mode for card payments, with signed callbacks, behind a payment-provider interface. Cash on delivery is supported alongside it. Stripe was dropped because it does not support Egyptian merchants. | 2026-11-08 |
 | D4 | **Market:** a fictional bakery in Egypt, priced in EGP. | 2026-11-08 |
 | D5 | **Language:** English only. UI strings stay centralized so i18n can be added later. | 2026-11-08 |
 | D6 | **Delivery fee:** a fixed fee per delivery zone. The owner manages zones, each with a fee and an optional minimum order. | 2026-11-08 |
@@ -84,7 +84,7 @@
 | D9 | **Time slots:** fixed two-hour windows, each with a maximum number of orders, for both delivery and pickup. | 2026-11-08 |
 | D10 | **Product options:** sizes plus a free-text cake message. No flavour or filling add-ons in v1. | 2026-11-08 |
 
-Note on D3 and D4: Stripe does not onboard Egyptian merchants, so Stripe is demo-only. The gateway interface lets a local provider (e.g. Paymob) replace it later without touching order logic.
+Note on D3: Paymob test mode is free. Taking real money needs Paymob's business verification. A practice provider (`fake`) lets the whole flow be demonstrated without any account.
 
 ## Deferred (not in scope for now)
 

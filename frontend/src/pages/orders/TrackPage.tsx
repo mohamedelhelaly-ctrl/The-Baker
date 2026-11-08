@@ -1,6 +1,10 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import { Alert } from "../../components/ui/Alert";
+import { Button } from "../../components/ui/Button";
 import { useApi } from "../../hooks/useApi";
+import { api, ApiError } from "../../lib/api";
+import { redirectTo } from "../../lib/navigation";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { formatDate, formatDateTime, formatSlotRange } from "../../lib/dates";
 import { formatMoney } from "../../lib/money";
@@ -9,11 +13,25 @@ import type { Order } from "../../lib/types";
 
 export default function TrackPage() {
   const { code = "" } = useParams();
-  const token = useSearchParams()[0].get("t");
+  const query = useSearchParams()[0];
+  const token = query.get("t");
+  // The payment page sends the customer back here. Paymob adds `success=true|false`. This only chooses
+  // which message to show: the order itself is only ever confirmed by the provider's signed callback.
+  const paymobSuccess = query.get("success");
+  const returnedPaid = query.get("paid") === "1" && paymobSuccess !== "false";
+  const returnedCancelled = query.get("cancelled") === "1" || paymobSuccess === "false";
   const justPlaced = Boolean((useLocation().state as { justPlaced?: boolean } | null)?.justPlaced);
   const path = `/orders/${encodeURIComponent(code)}${token ? `?t=${encodeURIComponent(token)}` : ""}`;
-  const { data: order, error, loading } = useApi<Order>(path);
+  const { data: order, error, loading, reload } = useApi<Order>(path);
   usePageTitle(order ? `Order ${order.code}` : "Your order");
+
+  // After paying, the provider tells us by webhook, which can take a moment: keep checking.
+  const waiting = order?.status === "pending_payment";
+  useEffect(() => {
+    if (!waiting) return;
+    const id = setInterval(reload, 3000);
+    return () => clearInterval(id);
+  }, [waiting, reload]);
 
   if (loading && !order) return <output>Loading…</output>;
   if (error || !order) {
@@ -33,10 +51,34 @@ export default function TrackPage() {
       </section>
     );
   }
-  return <OrderView order={order} justPlaced={justPlaced} />;
+  return (
+    <OrderView order={order} justPlaced={justPlaced} returnedPaid={returnedPaid} returnedCancelled={returnedCancelled} token={token} />
+  );
 }
 
-function OrderView({ order, justPlaced }: { order: Order; justPlaced: boolean }) {
+function OrderView({ order, justPlaced, returnedPaid, returnedCancelled, token }: {
+  order: Order;
+  justPlaced: boolean;
+  returnedPaid: boolean;
+  returnedCancelled: boolean;
+  token: string | null;
+}) {
+  const [payError, setPayError] = useState<string | null>(null);
+  const [opening, setOpening] = useState(false);
+  const awaiting = order.status === "pending_payment";
+
+  async function payNow() {
+    setOpening(true);
+    setPayError(null);
+    try {
+      const res = await api.post<{ payment_url: string }>(`/orders/${encodeURIComponent(order.code)}/payment-link${token ? `?t=${encodeURIComponent(token)}` : ""}`);
+      redirectTo(res.payment_url);
+    } catch (err) {
+      setPayError(err instanceof ApiError ? err.message : "Something went wrong.");
+      setOpening(false);
+    }
+  }
+
   const money = (n: number) => formatMoney(n, order.currency);
   const steps = progress(order.fulfilment_type);
   const off = order.status === "rejected" || order.status === "cancelled";
@@ -45,6 +87,28 @@ function OrderView({ order, justPlaced }: { order: Order; justPlaced: boolean })
 
   return (
     <article>
+      {awaiting && (
+        <section aria-labelledby="pay-h" className="mb-6">
+          <Alert kind="error" title={returnedPaid ? "Confirming your payment…" : returnedCancelled ? "Your payment was not completed" : "This order is waiting for payment"}>
+            <span id="pay-h">
+              {returnedPaid
+                ? "We are waiting for the payment provider to confirm. This page updates by itself, there is no need to pay again."
+                : "Your order is held for a short time. Pay by card to confirm it, or it will be cancelled automatically."}
+            </span>
+          </Alert>
+          {payError && <Alert kind="error">{payError}</Alert>}
+          {!returnedPaid && (
+            <Button type="button" disabled={opening} onClick={payNow}>
+              {opening ? "Opening the payment page…" : "Pay by card"}
+            </Button>
+          )}
+        </section>
+      )}
+      {returnedPaid && !awaiting && order.payment_status === "paid" && (
+        <Alert kind="success" title="Payment received, thank you">
+          Your order is confirmed. Keep this page: its link is how you check on your order.
+        </Alert>
+      )}
       {justPlaced && (
         <Alert kind="success" title="Thank you, your order has been received">
           Keep this page: its link is how you check on your order.
@@ -143,7 +207,7 @@ function OrderView({ order, justPlaced }: { order: Order; justPlaced: boolean })
           </dl>
           <p className="mt-3 text-muted">
             {order.payment_method === "cod" ? "Payment: cash on delivery or pickup" : "Payment: card"}
-            {order.payment_status === "paid" ? " (paid)" : ""}
+            {order.payment_status === "paid" ? " (paid)" : order.payment_status === "refunded" ? " (refunded)" : order.payment_status === "partially_refunded" ? " (partly refunded)" : ""}
           </p>
         </section>
       </div>

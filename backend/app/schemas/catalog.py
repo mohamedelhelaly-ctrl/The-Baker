@@ -81,3 +81,4 @@ class StoreRead(BaseModel):
     currency: str
     currency_exponent: int
     opening_hours: list[HoursRead] = []
+    payment_methods: list[str] = ["cod"]  # what checkout offers: cod and/or card

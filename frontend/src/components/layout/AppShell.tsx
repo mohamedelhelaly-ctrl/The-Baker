@@ -29,7 +29,7 @@ export function AppShell() {
             <Link to="/menu" className={link}>
               {s.nav.menu}
             </Link>
-            {(can("catalog_admin") || can("schedule_admin")) && (
+            {(can("catalog_admin") || can("schedule_admin") || can("settings")) && (
               <Link to="/admin" className={link}>
                 {s.nav.manage}
               </Link>

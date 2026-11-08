@@ -30,7 +30,7 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.schemas.user import MeRead
-from app.services.email import EmailSender, get_email_sender
+from app.services.notifications import enqueue, notifier
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -89,7 +89,6 @@ async def forgot_password(
     request: Request,
     body: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
-    email: EmailSender = Depends(get_email_sender),
 ):
     settings = get_settings()
     user = await user_crud.get_by_email(db, body.email)
@@ -101,14 +100,20 @@ async def forgot_password(
             token_hash=hash_token(token),
             expires_at=utcnow() + timedelta(minutes=settings.password_reset_minutes),
         )
-        link = f"{settings.frontend_url}/reset-password?token={token}"
-        await email.send(
-            user.email,
-            "Reset your password",
-            f"Hi {user.full_name},\n\nUse this link to choose a new password "
-            f"(valid for {settings.password_reset_minutes} minutes):\n{link}\n\n"
-            "If you did not ask for this, you can ignore this email.",
+        # Queued, not sent inline: a mail outage cannot break the request, and failures are visible.
+        await enqueue(
+            db,
+            key="password_reset",
+            to_email=user.email,
+            context={
+                "customer_name": user.full_name,
+                "reset_url": f"{settings.frontend_url}/reset-password?token={token}",
+                "reset_minutes": str(settings.password_reset_minutes),
+                "store_name": settings.business_name,
+            },
         )
+        await db.commit()
+        notifier.wake()
     return MessageResponse(message=FORGOT_MESSAGE)
 
 

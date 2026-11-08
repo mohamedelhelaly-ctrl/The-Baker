@@ -20,6 +20,7 @@ from app.schemas.catalog import (
     StoreRead,
 )
 from app.schemas.common import Page
+from app.services.payment_options import available_methods
 
 router = APIRouter(tags=["catalog"])
 
@@ -32,6 +33,7 @@ async def store(db: AsyncSession = Depends(get_db)):
         currency=s.currency,
         currency_exponent=exponent(s.currency),
         opening_hours=await schedule_crud.list_hours(db),
+        payment_methods=await available_methods(db),
     )
 
 

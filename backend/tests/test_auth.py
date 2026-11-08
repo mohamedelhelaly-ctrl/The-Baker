@@ -103,6 +103,7 @@ async def test_forgot_password_same_response_for_known_and_unknown(client, email
     await register(client)
     known = await client.post(f"{API}/forgot-password", json={"email": "sara@example.com"})
     unknown = await client.post(f"{API}/forgot-password", json={"email": "ghost@example.com"})
+    await emails.flush()
     assert known.status_code == unknown.status_code == 202
     assert known.json() == unknown.json()
     assert len(emails.sent) == 1 and emails.sent[0]["to"] == "sara@example.com"
@@ -119,6 +120,7 @@ def _token_from(emails) -> str:
 async def test_reset_password_flow_and_single_use(client, emails):
     await register(client)
     await client.post(f"{API}/forgot-password", json={"email": "sara@example.com"})
+    await emails.flush()
     token = _token_from(emails)
 
     r = await client.post(
@@ -146,6 +148,7 @@ async def test_reset_password_rejects_expired_and_bogus_tokens(client, emails, s
 
     await register(client)
     await client.post(f"{API}/forgot-password", json={"email": "sara@example.com"})
+    await emails.flush()
     token = _token_from(emails)
     with sync_engine.begin() as conn:
         conn.execute(

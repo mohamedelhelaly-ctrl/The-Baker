@@ -42,6 +42,7 @@ export interface StoreInfo {
   currency: string;
   currency_exponent: number;
   opening_hours: HoursEntry[];
+  payment_methods: ("cod" | "card")[];
 }
 
 export interface CategoryBrief {
@@ -268,4 +269,39 @@ export interface Order {
 }
 export interface OrderCreated extends Order {
   tracking_token: string;
+  payment_url: string | null; // card orders: the page to pay on
+}
+
+// ---- payments, emails and the email log (owner screens) ----
+export interface PaymentSettings {
+  card_enabled: boolean;
+  cod_enabled: boolean;
+  provider: "paymob" | "fake" | "none";
+  mode: "test" | "live" | null;
+  card_available: boolean;
+  webhook_path: string;
+  email_provider: "resend" | "log";
+  email_from: string;
+}
+export interface EmailTemplate {
+  key: string;
+  title: string;
+  description: string;
+  subject: string;
+  body: string;
+  is_active: boolean;
+  is_customised: boolean;
+  variables: string[];
+}
+export interface NotificationLogItem {
+  id: number;
+  order_code: string | null;
+  template_key: string;
+  to_email: string;
+  subject: string;
+  status: "pending" | "sent" | "failed";
+  attempts: number;
+  last_error: string | null;
+  created_at: string;
+  sent_at: string | null;
 }

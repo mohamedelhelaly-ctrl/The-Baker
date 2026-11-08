@@ -11,7 +11,8 @@ import { api, ApiError } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
 import { formatDate, formatTime, hhmm } from "../../lib/dates";
-import { useMoney } from "../../lib/store";
+import { redirectTo } from "../../lib/navigation";
+import { useMoney, useStore } from "../../lib/store";
 import type { OrderCreated, SlotsResponse } from "../../lib/types";
 
 const STEPS = ["Delivery or pickup", "Date and time", "Your details", "Payment", "Review"] as const;
@@ -28,10 +29,11 @@ export default function CheckoutPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const money = useMoney();
+  const { payment_methods: methods } = useStore();
   const [step, setStep] = useState(0);
   const [f, setF] = useState<FormState>({
     fulfilment: "delivery", zoneId: "", street: "", building: "", floor: "", apartment: "", landmark: "",
-    date: "", slotId: "", name: "", email: "", phone: "", notes: "",
+    date: "", slotId: "", name: "", email: "", phone: "", notes: "", payment: "cod",
   });
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [submitError, setSubmitError] = useState<{ message: string; fields: Record<string, string> } | null>(null);
@@ -39,6 +41,9 @@ export default function CheckoutPage() {
   const inFlight = useRef(false); // a ref, so a fast double click cannot slip past a stale state value
   const headingRef = useRef<HTMLHeadingElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
+
+  // If the chosen method is not offered (the shop switched it off), fall back to one that is.
+  const payment = methods.includes(f.payment) ? f.payment : (methods[0] ?? "cod");
 
   const set: SetField = (key, value) => {
     setErrors({});
@@ -149,12 +154,16 @@ export default function CheckoutPage() {
       date: f.date,
       slot_id: Number(f.slotId),
       contact: { name: f.name.trim(), email: f.email.trim(), phone: f.phone.trim() },
-      payment_method: "cod",
+      payment_method: payment,
       customer_notes: f.notes.trim() || null,
     };
     try {
       const order = await api.post<OrderCreated>("/orders", body, { headers: { "Idempotency-Key": idempotencyKey(JSON.stringify(body)) } });
       cart.clear();
+      if (order.payment_url) {
+        redirectTo(order.payment_url); // card: off to the secure payment page; it returns to /track/...
+        return;
+      }
       navigate(`/track/${order.code}?t=${order.tracking_token}`, { replace: true, state: { justPlaced: true } });
     } catch (err) {
       const apiErr = err instanceof ApiError ? err : null;
@@ -212,7 +221,7 @@ export default function CheckoutPage() {
               {step === 0 && <FulfilmentStep f={f} set={set} errors={errors} zoneProblem={stepProblem.zone} />}
               {step === 1 && <ScheduleStep f={f} set={set} errors={errors} lines={cart.lines} dateProblem={stepProblem.date} slotProblem={stepProblem.slot} />}
               {step === 2 && <ContactStep f={f} set={set} errors={errors} />}
-              {step === 3 && <PaymentStep />}
+              {step === 3 && <PaymentStep f={{ ...f, payment }} set={set} methods={methods} />}
               <div className="flex flex-wrap gap-3">
                 {step > 0 && (
                   <button type="button" onClick={() => { setErrors({}); setStep(step - 1); }} className="min-h-11 rounded-md border-2 border-line px-5 font-semibold">
@@ -226,13 +235,13 @@ export default function CheckoutPage() {
             </form>
           ) : (
             <form onSubmit={place} noValidate>
-              <Review f={f} />
+              <Review f={{ ...f, payment }} />
               <div className="mt-6 flex flex-wrap gap-3">
                 <button type="button" onClick={() => setStep(3)} className="min-h-11 rounded-md border-2 border-line px-5 font-semibold">
                   Back
                 </button>
                 <Button type="submit" disabled={placing || !quote?.ready}>
-                  {placing ? "Placing your order…" : `Place order · ${quote ? money(quote.total) : ""}`}
+                  {placing ? "Placing your order…" : `${payment === "card" ? "Place order and pay" : "Place order"} · ${quote ? money(quote.total) : ""}`}
                 </Button>
               </div>
               {quote && !quote.ready && <p className="mt-3 font-semibold text-danger">Something in your order needs attention. Go back to fix it.</p>}
@@ -273,7 +282,7 @@ function Review({ f }: { f: FormState }) {
         <span className="block">{f.phone}</span>
       </Row>
       {f.notes && <Row label="Notes">{f.notes}</Row>}
-      <Row label="Payment">Cash on delivery or pickup</Row>
+      <Row label="Payment">{f.payment === "card" ? "Online by card" : "Cash on delivery or pickup"}</Row>
     </dl>
   );
 }

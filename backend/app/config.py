@@ -54,6 +54,22 @@ class Settings(BaseSettings):
     r2_bucket: str | None = None
     r2_public_url: str | None = None  # public bucket URL or custom domain, no trailing slash
 
+    # Payments: "paymob" (Egypt, test or live keys), "fake" (dev/demo hosted page) or "none"
+    payment_provider: str = "none"
+    paymob_secret_key: str | None = None  # egy_sk_test_... / egy_sk_live_...
+    paymob_public_key: str | None = None  # egy_pk_test_... / egy_pk_live_...
+    paymob_hmac_secret: str | None = None  # verifies that callbacks really come from Paymob
+    paymob_integration_id: int | None = None  # the card "Integration ID" from the dashboard
+    paymob_api_url: str = "https://accept.paymob.com"
+    paymob_checkout_url: str = "https://eg.checkout.paymob.com"
+
+    # Email: Resend when a key is set, otherwise emails are written to the log
+    resend_api_key: str | None = None
+    email_from: str = "The Baker <onboarding@resend.dev>"
+
+    # In-process workers (expire unpaid orders, send queued emails). Off in tests.
+    background_tasks_enabled: bool = True
+
     # Load the demo catalog at startup (idempotent; only if the catalog is empty)
     seed_demo: bool = False
 
@@ -70,6 +86,29 @@ class Settings(BaseSettings):
         # Tolerate quotes, spaces and trailing slashes pasted into a hosting dashboard.
         cleaned = (o.strip().strip("\"'").strip().rstrip("/") for o in self.cors_origins.split(","))
         return [o for o in cleaned if o]
+
+    @model_validator(mode="after")
+    def _check_payments(self) -> "Settings":
+        if self.payment_provider not in ("paymob", "fake", "none"):
+            raise ValueError("PAYMENT_PROVIDER must be paymob, fake or none")
+        if self.payment_provider == "paymob":
+            missing = [
+                name
+                for name in (
+                    "paymob_secret_key",
+                    "paymob_public_key",
+                    "paymob_hmac_secret",
+                    "paymob_integration_id",
+                )
+                if not getattr(self, name)
+            ]
+            if missing:
+                raise ValueError(
+                    f"PAYMENT_PROVIDER=paymob requires: {', '.join(m.upper() for m in missing)}"
+                )
+        if self.payment_provider == "fake" and self.env == "production":
+            raise ValueError("PAYMENT_PROVIDER=fake is for development only")
+        return self
 
     @model_validator(mode="after")
     def _check_storage(self) -> "Settings":

@@ -20,6 +20,7 @@ export interface FormState {
   email: string;
   phone: string;
   notes: string;
+  payment: "cod" | "card";
 }
 export type SetField = <K extends keyof FormState>(key: K, value: FormState[K]) => void;
 type Errors = Record<string, string | undefined>;
@@ -135,20 +136,29 @@ export function ContactStep({ f, set, errors }: { f: FormState; set: SetField; e
   );
 }
 
-export function PaymentStep() {
+export function PaymentStep({ f, set, methods }: { f: FormState; set: SetField; methods: ("cod" | "card")[] }) {
+  const choice = (on: boolean) =>
+    `mb-2 flex min-h-11 items-center gap-3 rounded-md border-2 px-3 ${on ? "cursor-pointer border-line bg-surface has-[:checked]:border-primary" : "border-line bg-bg text-muted"}`;
+  const hasCod = methods.includes("cod");
+  const hasCard = methods.includes("card");
   return (
     <fieldset className="mb-6">
       <legend className="mb-2 font-semibold">How would you like to pay?</legend>
-      <label className="mb-2 flex min-h-11 items-center gap-3 rounded-md border-2 border-primary bg-surface px-3">
-        <input type="radio" name="payment" className="size-5" checked readOnly />
-        Cash on delivery or pickup
+      {hasCod && (
+        <label className={choice(true)}>
+          <input type="radio" name="payment" className="size-5" checked={f.payment === "cod"} onChange={() => set("payment", "cod")} />
+          Cash on delivery or pickup
+        </label>
+      )}
+      <label className={choice(hasCard)}>
+        <input type="radio" name="payment" className="size-5" disabled={!hasCard} checked={hasCard && f.payment === "card"} onChange={() => set("payment", "card")} />
+        {hasCard ? "Pay online by card" : "Pay online by card (not available right now)"}
       </label>
-      <label className="mb-2 flex min-h-11 items-center gap-3 rounded-md border-2 border-line bg-bg px-3 text-muted">
-        <input type="radio" name="payment" className="size-5" disabled />
-        Pay online by card (coming soon)
-      </label>
-      <p className="mt-2 text-muted">You pay when you receive or collect your order.</p>
+      <p className="mt-2 text-muted">
+        {f.payment === "card" && hasCard
+          ? "After you place the order you will be taken to a secure payment page. Your order is confirmed once the payment goes through."
+          : "You pay when you receive or collect your order."}
+      </p>
     </fieldset>
   );
 }
-

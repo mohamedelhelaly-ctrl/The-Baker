@@ -28,6 +28,8 @@ from app.models.order import (
 from app.models.schedule import ProductDailyUsage, SlotDailyUsage
 from app.models.user import User
 from app.schemas.checkout import OrderCreate, Problem
+from app.services.notifications import enqueue, notifier, order_context
+from app.services.payment_options import available_methods
 from app.services.pricing import Quote, build_quote
 
 CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # no 0/O/1/I: easy to read out loud
@@ -83,11 +85,18 @@ async def place_order(
     if existing is not None:
         return existing, False
 
-    if data.payment_method == "card":
+    methods = await available_methods(db)
+    if data.payment_method not in methods:
+        if data.payment_method == "card":
+            raise ApiError(
+                422,
+                "card_unavailable",
+                "Card payment is not available right now. Please choose cash on delivery.",
+            )
         raise ApiError(
             422,
-            "card_unavailable",
-            "Online payment is not available yet. Please choose cash on delivery.",
+            "cod_unavailable",
+            "Cash on delivery is not available right now. Please pay by card.",
         )
 
     quote_args = {
@@ -128,6 +137,17 @@ async def place_order(
     order = _build_order(data, user, idempotency_key, quote, now)
     db.add(order)
     try:
+        # Flush first: taking the unique idempotency key is what makes a racing duplicate fail here,
+        # inside this block, rather than somewhere later (queuing an email also triggers a flush).
+        await db.flush()
+        if data.payment_method == "cod":  # card orders are confirmed when the payment succeeds
+            await enqueue(
+                db,
+                key="order_confirmed",
+                to_email=order.contact_email,
+                context=order_context(order),
+                order_id=order.id,
+            )
         await db.commit()
     except IntegrityError:
         await db.rollback()
@@ -136,6 +156,7 @@ async def place_order(
         if winner is not None:
             return winner, False
         raise
+    notifier.wake()
     return await order_crud.get_by_code(db, order.code), True  # type: ignore[return-value]
 
 
@@ -143,6 +164,7 @@ def _build_order(
     data: OrderCreate, user: User | None, key: str, quote: Quote, now: datetime
 ) -> Order:
     r = quote.response
+    card = data.payment_method == "card"
     option = quote.slot_option
     order = Order(
         code=new_order_code(),
@@ -166,8 +188,9 @@ def _build_order(
         total=r.total,
         currency=r.currency,
         payment_method=PaymentMethod(data.payment_method),
-        payment_status=PaymentStatus.unpaid,
-        status=OrderStatus.received,  # cash on delivery: no payment step before staff see it
+        payment_status=PaymentStatus.pending if card else PaymentStatus.unpaid,
+        # Cash orders go straight to staff. Card orders wait for the payment confirmation.
+        status=OrderStatus.pending_payment if card else OrderStatus.received,
         customer_notes=(data.customer_notes or "").strip() or None,
         placed_at=now,
     )
@@ -187,7 +210,7 @@ def _build_order(
     order.events = [
         OrderStatusEvent(
             from_status=None,
-            to_status=OrderStatus.received,
+            to_status=OrderStatus.pending_payment if card else OrderStatus.received,
             actor_user_id=user.id if user else None,
         )
     ]
@@ -219,4 +242,32 @@ async def release_order_capacity(db: AsyncSession, order: Order) -> None:
             SlotDailyUsage.date == order.fulfilment_date,
         )
         .values(reserved_orders=SlotDailyUsage.reserved_orders - 1)
+    )
+
+
+def change_status(
+    order: Order, to: OrderStatus, *, actor_id: int | None = None, reason: str | None = None
+) -> None:
+    """Move an order to a new status and record it on the timeline. The caller commits."""
+    order.events.append(
+        OrderStatusEvent(
+            from_status=order.status, to_status=to, actor_user_id=actor_id, reason=reason
+        )
+    )
+    order.status = to
+
+
+async def cancel_unpaid_order(db: AsyncSession, order: Order, reason: str) -> None:
+    """A card order that was never paid: cancel it, free its capacity and tell the customer.
+    The caller commits, so all of this is one transaction."""
+    change_status(order, OrderStatus.cancelled, reason=reason)
+    order.cancellation_reason = reason
+    order.payment_status = PaymentStatus.failed
+    await release_order_capacity(db, order)
+    await enqueue(
+        db,
+        key="order_cancelled",
+        to_email=order.contact_email,
+        context=order_context(order, {"reason": reason}),
+        order_id=order.id,
     )
