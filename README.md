@@ -8,7 +8,9 @@ Design docs: [requirements](docs/REQUIREMENTS_DRAFT.md) · [system design](docs/
 
 ## Status
 
-Milestone **M0** (scaffolding and authentication) is built: register, sign in, password reset, role-based guards, accessibility tooling. Next: M1, the catalog. See [DESIGN.md §14](docs/DESIGN.md).
+- **M0** scaffolding and authentication: done and deployed.
+- **M1** catalog: done. Customers browse the menu (category, occasion, search, sort, pagination) and open product pages. The owner manages products, sizes and prices, photos (with required alt text), categories and occasions.
+- Next: **M2**, delivery zones, time slots and availability. See [DESIGN.md §14](docs/DESIGN.md).
 
 ## Run everything with Docker
 
@@ -23,6 +25,8 @@ docker compose up --build -d             # migrates, creates the first owner, se
 | Web | http://localhost:5173 |
 | API docs | http://localhost:8000/docs |
 | Postgres | localhost:5433 (user/password/db: `baker`) |
+
+With `SEED_DEMO=true` in `backend/.env` (the example default), about 30 demo products are loaded on first start. Sign in as the owner (`FIRST_OWNER_EMAIL` / `FIRST_OWNER_PASSWORD`) and open **Manage shop** to edit them. Product photos are stored on a Docker volume locally.
 
 Until email sending is added (M4), password-reset links are written to the backend log: `docker compose logs backend | grep reset-password`.
 
@@ -53,7 +57,14 @@ npm run lint && npm test && npm run build
 1. New project, add a **PostgreSQL** service.
 2. Add a service from this repo with **Root Directory** `backend` (it picks up `backend/railway.json` and the Dockerfile).
 3. Variables: `DATABASE_URL` (reference the Postgres service's `DATABASE_URL`), `ENV=production`, `JWT_SECRET`, `FRONTEND_URL`, `CORS_ORIGINS` (both the Vercel URL), `FIRST_OWNER_EMAIL`, `FIRST_OWNER_PASSWORD`.
-4. Generate a public domain.
+4. Photo storage (required in production, the app refuses to start without it): `STORAGE_BACKEND=r2`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`. See below.
+5. Optional: `SEED_DEMO=true` loads the demo catalog on the first start when the catalog is empty.
+6. Generate a public domain.
+
+**Cloudflare R2 (product photos)**
+1. Cloudflare dashboard, **R2 Object Storage**, create a bucket (for example `the-baker`).
+2. Bucket **Settings, Public access**: enable the **r2.dev subdomain** (or connect a custom domain). Copy the public URL into `R2_PUBLIC_URL` (no trailing slash).
+3. R2 overview, **Manage API tokens**, create a token with **Object Read & Write** limited to that bucket. Copy the Access Key ID and Secret Access Key. The Account ID is shown on the R2 overview page.
 
 **Vercel (frontend)**
 1. Import the repo with **Root Directory** `frontend` (Vite preset).
