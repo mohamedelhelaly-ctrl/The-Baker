@@ -15,7 +15,7 @@ from app.core.errors import register_error_handlers
 from app.core.rate_limit import limiter
 from app.database import engine
 from app.deps import require_module
-from app.routers import admin_catalog, admin_schedule, auth, availability, catalog
+from app.routers import admin_catalog, admin_schedule, auth, availability, catalog, checkout
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s [%(name)s] %(message)s")
 settings = get_settings()
@@ -51,6 +51,9 @@ register_error_handlers(app)
 # Router registration is the one place where access control is visible (DESIGN.md §3).
 app.include_router(auth.router, prefix=API_PREFIX)  # public
 app.include_router(catalog.router, prefix=API_PREFIX)  # public read-only menu
+app.include_router(
+    checkout.router, prefix=API_PREFIX
+)  # guests may order; reads need ownership or a token
 app.include_router(availability.router, prefix=API_PREFIX)  # public: zones and bookable dates/slots
 app.include_router(  # owner only; write endpoints add their own write guard
     admin_catalog.router, prefix=API_PREFIX, dependencies=[Depends(require_module("catalog_admin"))]

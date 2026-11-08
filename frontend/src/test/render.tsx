@@ -2,6 +2,7 @@ import { render } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { MemoryRouter } from "react-router";
 import { AuthProvider } from "../lib/auth";
+import { CartProvider } from "../lib/cart";
 import { DisplayProvider } from "../lib/display";
 import { StoreProvider } from "../lib/store";
 
@@ -10,14 +11,17 @@ export function renderApp(ui: ReactElement, route = "/") {
     <MemoryRouter initialEntries={[route]}>
       <DisplayProvider>
         <AuthProvider>
-          <StoreProvider>{ui}</StoreProvider>
+          <StoreProvider>
+            <CartProvider>{ui}</CartProvider>
+          </StoreProvider>
         </AuthProvider>
       </DisplayProvider>
     </MemoryRouter>,
   );
 }
 
-export function mockFetch(routes: Record<string, { status?: number; body: unknown }>) {
+type Body = unknown | ((request: any) => unknown); // eslint-disable-line
+export function mockFetch(routes: Record<string, { status?: number; body: Body }>) {
   const calls: { url: string; init?: RequestInit }[] = [];
   globalThis.fetch = (async (url: string, init?: RequestInit) => {
     calls.push({ url, init });
@@ -30,7 +34,8 @@ export function mockFetch(routes: Record<string, { status?: number; body: unknow
       keys.find((k) => !/^[A-Z]+ /.test(k) && (url.endsWith(k) || path.endsWith(k)));
     if (!key) throw new Error(`unmocked ${url}`);
     const { status = 200, body } = routes[key];
-    return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+    const payload = typeof body === "function" ? (body as (r: unknown) => unknown)(init?.body ? JSON.parse(String(init.body)) : undefined) : body;
+    return new Response(status === 204 ? null : JSON.stringify(payload), { status, headers: { "Content-Type": "application/json" } });
   }) as typeof fetch;
   return calls;
 }

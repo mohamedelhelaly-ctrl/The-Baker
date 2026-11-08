@@ -108,11 +108,17 @@ async def load_context(
             )
         ).scalars()
     )
+    # Plain column rows, not ORM entities: counters change under row locks during checkout, and
+    # entities would come back stale from the session's identity map.
     slot_usage = {
-        (u.time_slot_id, u.date): u.reserved_orders
-        for u in (
-            await db.execute(select(SlotDailyUsage).where(SlotDailyUsage.date.between(start, end)))
-        ).scalars()
+        (slot_id, day): reserved
+        for slot_id, day, reserved in (
+            await db.execute(
+                select(
+                    SlotDailyUsage.time_slot_id, SlotDailyUsage.date, SlotDailyUsage.reserved_orders
+                ).where(SlotDailyUsage.date.between(start, end))
+            )
+        ).all()
     }
     products: list[CartProduct] = []
     product_usage: dict[tuple[int, date], int] = {}
@@ -140,15 +146,19 @@ async def load_context(
             for p in rows
         ]
         product_usage = {
-            (u.product_id, u.date): u.reserved_qty
-            for u in (
+            (product_id, day): reserved
+            for product_id, day, reserved in (
                 await db.execute(
-                    select(ProductDailyUsage).where(
+                    select(
+                        ProductDailyUsage.product_id,
+                        ProductDailyUsage.date,
+                        ProductDailyUsage.reserved_qty,
+                    ).where(
                         ProductDailyUsage.product_id.in_(quantities),
                         ProductDailyUsage.date.between(start, end),
                     )
                 )
-            ).scalars()
+            ).all()
         }
     return Context(hours, closures, slots, slot_usage, product_usage, products)
 

@@ -11,7 +11,8 @@ Design docs: [requirements](docs/REQUIREMENTS_DRAFT.md) · [system design](docs/
 - **M0** scaffolding and authentication: done and deployed.
 - **M1** catalog: done. Customers browse the menu (category, occasion, search, sort, pagination) and open product pages. The owner manages products, sizes and prices, photos (with required alt text), categories and occasions.
 - **M2** schedule and delivery: done. Weekly opening hours, closed dates, fixed two-hour time slots with order limits, delivery zones with fees and minimum orders, and weekday rules per product. One rules engine answers "which dates and slots can this cart be booked for". Owners manage it all under **Manage shop**, staff can view it, and customers see opening hours, delivery fees and the earliest delivery or pickup date for each product.
-- Next: **M3**, cart, checkout and cash-on-delivery orders (it reserves the capacity M2 reports). See [DESIGN.md §14](docs/DESIGN.md).
+- **M3** cart, checkout and cash-on-delivery orders: done. Customers add products (with an optional cake message) to a cart, then check out in five steps (delivery or pickup, date and time, contact details, payment, review). The server prices everything, shows the delivery fee and total before ordering, reserves capacity so the last cake or slot can never be sold twice, and a retried or double-clicked submit never creates two orders. Guests get a private tracking link, signed-in customers see their own orders.
+- Next: **M4**, Stripe card payments (test mode), webhooks and confirmation emails. See [DESIGN.md §14](docs/DESIGN.md).
 
 ## Run everything with Docker
 

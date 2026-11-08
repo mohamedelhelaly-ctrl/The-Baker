@@ -72,3 +72,58 @@ export const staff = {
     catalog_admin: { read: false, write: false }, schedule_admin: { read: true, write: false },
   },
 };
+
+// ---- checkout ----
+const PRICES: Record<number, number> = { 10: 65000, 11: 95000 };
+const VARIANT_NAMES: Record<number, string> = { 10: "6-inch", 11: "8-inch" };
+interface FakeReq {
+  items: { variant_id: number; quantity: number; inscription: string | null }[];
+  fulfilment_type?: string; zone_id?: number; date?: string; slot_id?: number;
+}
+export function fakeQuote(req: FakeReq, problems: { field: string; code: string; message: string }[] = [], unavailable: number[] = []) {
+  const lines = req.items.map((i) => {
+    const ok = !unavailable.includes(i.variant_id);
+    return {
+      variant_id: i.variant_id, product_id: 1, slug: "triple-chocolate-cake", product_name: "Triple Chocolate Cake",
+      variant_name: VARIANT_NAMES[i.variant_id] ?? "", unit_price: PRICES[i.variant_id] ?? 0, quantity: i.quantity,
+      line_total: ok ? (PRICES[i.variant_id] ?? 0) * i.quantity : 0, inscription: i.inscription,
+      image: image(1, "A whole chocolate cake"), available: ok, message: ok ? null : "Triple Chocolate Cake is no longer available.",
+    };
+  });
+  const subtotal = lines.reduce((n, l) => n + l.line_total, 0);
+  const fee = req.fulfilment_type === "delivery" && req.zone_id ? 4000 : 0;
+  const all = [...problems, ...unavailable.map(() => ({ field: "items", code: "item_unavailable", message: "Triple Chocolate Cake is no longer available." }))];
+  const complete = Boolean(subtotal && req.fulfilment_type && (req.fulfilment_type === "pickup" || req.zone_id) && req.date && req.slot_id);
+  return { lines, subtotal, delivery_fee: fee, total: subtotal + fee, currency: "EGP", currency_exponent: 2, zone_minimum: null, problems: all, ready: complete && all.length === 0 };
+}
+export const datesBody = {
+  earliest_date: "2030-12-04",
+  days: [
+    { date: "2030-12-03", available: false, reason: "lead_time", message: "Needs at least 2 days notice." },
+    { date: "2030-12-04", available: true, reason: null, message: null },
+    { date: "2030-12-05", available: true, reason: null, message: null },
+  ],
+};
+export const slotsBody = {
+  date: "2030-12-04", available: true, reason: null, message: null,
+  slots: [
+    { slot_id: 1, starts_at: "10:00:00", ends_at: "12:00:00", available: true, reason: null, message: null, remaining_orders: 6 },
+    { slot_id: 2, starts_at: "12:00:00", ends_at: "14:00:00", available: false, reason: "slot_full", message: "Fully booked.", remaining_orders: 0 },
+    { slot_id: 3, starts_at: "14:00:00", ends_at: "16:00:00", available: true, reason: null, message: null, remaining_orders: 1 },
+  ],
+};
+export const publicZones = [
+  { id: 1, name: "Maadi", fee: 4000, min_order_amount: 30000 },
+  { id: 2, name: "Zamalek", fee: 0, min_order_amount: 0 },
+];
+export const placedOrder = {
+  code: "BK-ABC234", status: "received", payment_method: "cod", payment_status: "unpaid", fulfilment_type: "delivery",
+  fulfilment_date: "2030-12-04", slot_starts_at: "2030-12-04T08:00:00Z", slot_ends_at: "2030-12-04T10:00:00Z",
+  zone_name: "Maadi", delivery_address: { street: "12 Road 9", building: "5", floor: "3", landmark: "Next to the mosque" },
+  contact_name: "Sara Ali", contact_email: "sara@example.com", contact_phone: "+20 100 123 4567",
+  subtotal: 130000, delivery_fee: 4000, total: 134000, currency: "EGP", customer_notes: "Ring twice",
+  is_delayed: false, delay_note: null, rejection_reason: null, cancellation_reason: null,
+  placed_at: "2030-12-01T10:30:00Z",
+  items: [{ product_name: "Triple Chocolate Cake", variant_name: "6-inch", unit_price: 65000, quantity: 2, line_total: 130000, inscription: "Happy Birthday" }],
+  events: [{ from_status: null, to_status: "received", reason: null, created_at: "2030-12-01T10:30:00Z" }],
+};

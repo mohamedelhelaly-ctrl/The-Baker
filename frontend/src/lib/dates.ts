@@ -28,3 +28,15 @@ export function todayIso(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+const STORE_TZ = "Africa/Cairo";
+
+/** An ISO instant shown in the bakery's timezone: "10:00 AM to 12:00 PM". */
+export function formatSlotRange(startIso: string, endIso: string): string {
+  const f = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: STORE_TZ });
+  return `${f.format(new Date(startIso))} to ${f.format(new Date(endIso))}`;
+}
+
+export function formatDateTime(iso: string): string {
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: STORE_TZ }).format(new Date(iso));
+}

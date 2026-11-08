@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import hmac
 import secrets
 from datetime import timedelta
 
@@ -65,3 +66,14 @@ def generate_token() -> str:
 
 def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def tracking_token(order_code: str) -> str:
+    """Guest access token for one order. Derived (HMAC) rather than stored, so a retried
+    checkout request returns the same link and no secret sits in the database."""
+    key = get_settings().jwt_secret.encode("utf-8")
+    return hmac.new(key, f"order-tracking:{order_code}".encode(), hashlib.sha256).hexdigest()[:40]
+
+
+def verify_tracking_token(order_code: str, token: str | None) -> bool:
+    return bool(token) and hmac.compare_digest(tracking_token(order_code), token)

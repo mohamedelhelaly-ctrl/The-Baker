@@ -25,11 +25,12 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
 
 interface Options {
   signal?: AbortSignal;
+  headers?: Record<string, string>;
 }
 
 async function request<T>(method: string, path: string, body?: unknown, opts: Options = {}): Promise<T> {
   const token = getToken();
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json", ...opts.headers };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
 

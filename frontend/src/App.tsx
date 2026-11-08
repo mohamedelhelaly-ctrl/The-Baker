@@ -19,6 +19,9 @@ const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"));
 const AdminProductEditPage = lazy(() => import("./pages/admin/AdminProductEditPage"));
 const AdminSchedulePage = lazy(() => import("./pages/admin/AdminSchedulePage"));
 const AdminDeliveryZonesPage = lazy(() => import("./pages/admin/AdminDeliveryZonesPage"));
+const CartPage = lazy(() => import("./pages/cart/CartPage"));
+const CheckoutPage = lazy(() => import("./pages/checkout/CheckoutPage"));
+const TrackPage = lazy(() => import("./pages/orders/TrackPage"));
 const DeliveryPage = lazy(() => import("./pages/delivery/DeliveryPage"));
 const AdminTaxonomyPage = lazy(() => import("./pages/admin/AdminTaxonomyPage"));
 const NotFoundPage = lazy(() => import("./pages/errors/NotFoundPage"));
@@ -33,6 +36,9 @@ export default function App() {
           <Route path="menu" element={<MenuPage />} />
           <Route path="products/:slug" element={<ProductPage />} />
           <Route path="delivery" element={<DeliveryPage />} />
+          <Route path="cart" element={<CartPage />} />
+          <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="track/:code" element={<TrackPage />} />
           <Route element={<GuestOnly />}>
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />

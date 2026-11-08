@@ -35,3 +35,16 @@ def require_module(module: str, write: bool = False):
         return user
 
     return guard
+
+
+async def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    """Guests may check out. A signed-in customer's order is attached to their account;
+    a missing or expired token simply means guest."""
+    if credentials is None:
+        return None
+    user_id = decode_access_token(credentials.credentials)
+    user = await user_crud.get(db, user_id) if user_id else None
+    return user if user and user.is_active else None

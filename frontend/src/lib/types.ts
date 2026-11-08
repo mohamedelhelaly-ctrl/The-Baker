@@ -173,3 +173,99 @@ export interface DatesResponse {
   earliest_date: string | null;
   days: DayAvailability[];
 }
+
+// ---- cart, checkout and orders (mirrors backend/app/schemas/checkout.py) ----
+export interface QuoteLine {
+  variant_id: number;
+  product_id: number | null;
+  slug: string | null;
+  product_name: string;
+  variant_name: string;
+  unit_price: number;
+  quantity: number;
+  line_total: number;
+  inscription: string | null;
+  image: ProductImage | null;
+  available: boolean;
+  message: string | null;
+}
+export interface Problem {
+  field: "items" | "zone" | "date" | "slot" | string;
+  code: string;
+  message: string;
+}
+export interface Quote {
+  lines: QuoteLine[];
+  subtotal: number;
+  delivery_fee: number;
+  total: number;
+  currency: string;
+  currency_exponent: number;
+  zone_minimum: number | null;
+  problems: Problem[];
+  ready: boolean;
+}
+export type Fulfilment = "delivery" | "pickup";
+export interface SlotOption {
+  slot_id: number;
+  starts_at: string;
+  ends_at: string;
+  available: boolean;
+  reason: string | null;
+  message: string | null;
+  remaining_orders: number;
+}
+export interface SlotsResponse {
+  date: string;
+  available: boolean;
+  reason: string | null;
+  message: string | null;
+  slots: SlotOption[];
+}
+export type OrderStatus =
+  | "pending_payment" | "received" | "accepted" | "rejected" | "preparing"
+  | "ready" | "out_for_delivery" | "delivered" | "picked_up" | "cancelled";
+export interface OrderItem {
+  product_name: string;
+  variant_name: string;
+  unit_price: number;
+  quantity: number;
+  line_total: number;
+  inscription: string | null;
+}
+export interface OrderEvent {
+  from_status: OrderStatus | null;
+  to_status: OrderStatus;
+  reason: string | null;
+  created_at: string;
+}
+export interface Order {
+  code: string;
+  status: OrderStatus;
+  payment_method: "cod" | "card";
+  payment_status: string;
+  fulfilment_type: Fulfilment;
+  fulfilment_date: string;
+  slot_starts_at: string;
+  slot_ends_at: string;
+  zone_name: string | null;
+  delivery_address: { street: string; building: string; floor?: string; apartment?: string; landmark?: string } | null;
+  contact_name: string;
+  contact_email: string;
+  contact_phone: string;
+  subtotal: number;
+  delivery_fee: number;
+  total: number;
+  currency: string;
+  customer_notes: string | null;
+  is_delayed: boolean;
+  delay_note: string | null;
+  rejection_reason: string | null;
+  cancellation_reason: string | null;
+  placed_at: string;
+  items: OrderItem[];
+  events: OrderEvent[];
+}
+export interface OrderCreated extends Order {
+  tracking_token: string;
+}

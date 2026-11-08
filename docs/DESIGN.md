@@ -208,7 +208,7 @@ Archiving is a soft delete. Archived products disappear from the storefront but 
 
 | Table | Key columns |
 |---|---|
-| `orders` | `code` (unique, public, e.g. `BK-7F3K2Q`), `user_id` → users (SET NULL, nullable for guests), `contact_name`, `contact_email`, `contact_phone`, `fulfilment_type`, `fulfilment_date`, `time_slot_id` (SET NULL) plus `slot_starts_at` / `slot_ends_at` snapshots, `zone_id` (SET NULL) plus `zone_name` and `delivery_address` snapshots, `subtotal`, `delivery_fee`, `total`, `currency`, `payment_method` enum(`card`,`cod`), `payment_status` enum(`unpaid`,`pending`,`paid`,`partially_refunded`,`refunded`,`failed`), `status` (§6), `is_delayed`, `delay_note`, `rejection_reason`, `cancellation_reason`, `customer_notes`, `tracking_token_hash`, `placed_at` |
+| `orders` | `code` (unique, public, e.g. `BK-7F3K2Q`), `idempotency_key` (unique), `user_id` → users (SET NULL, nullable for guests), `contact_name`, `contact_email`, `contact_phone`, `fulfilment_type`, `fulfilment_date`, `time_slot_id` (SET NULL) plus `slot_starts_at` / `slot_ends_at` snapshots, `zone_id` (SET NULL) plus `zone_name` and `delivery_address` snapshots, `subtotal`, `delivery_fee`, `total`, `currency`, `payment_method` enum(`card`,`cod`), `payment_status` enum(`unpaid`,`pending`,`paid`,`partially_refunded`,`refunded`,`failed`), `status` (§6), `is_delayed`, `delay_note`, `rejection_reason`, `cancellation_reason`, `customer_notes`, `placed_at`. There is no stored tracking token; see the M3 notes. |
 | `order_items` | `order_id` (CASCADE), `product_id` / `variant_id` (SET NULL), `product_name`, `variant_name`, `unit_price`, `quantity`, `line_total`, `inscription` (message on the cake) |
 | `order_status_events` | `order_id` (CASCADE), `from_status`, `to_status`, `actor_user_id` (SET NULL), `reason`, `created_at`. This powers the customer tracking timeline. |
 | `order_messages` | `order_id` (CASCADE), `author_id` (SET NULL), `channel` enum(`email`,`note`), `body`, `sent_at` |
@@ -558,6 +558,20 @@ Browser ──▶ Vercel (static SPA, CDN)
 
 ---
 
+### M3 implementation notes
+
+- **Quote before order.** `POST /checkout/quote` never fails because of the customer's choices. It returns `problems`, each tagged with the step that can fix it (`items`, `zone`, `date`, `slot`), plus `ready`. Checkout shows each message where it can be fixed and blocks Continue.
+- **Placing an order** (`services/orders.py`): early validation, then the counter rows are locked (`SELECT ... FOR UPDATE`, products by id first, then the slot), the quote is computed **again on the locked numbers**, the counters are incremented and the order is inserted, all in one transaction. Counters are read as plain column rows, never as cached ORM objects. Tests fire simultaneous orders at the last unit and the last slot, and exactly the allowed number succeed.
+- **Idempotency.** `Idempotency-Key` is required. A repeat returns the original order (200 instead of 201) without reserving anything again, including when the duplicates arrive at the same instant. The frontend keeps one key per distinct order, so a retry after a network failure is safe.
+- **Tracking tokens are derived, not stored.** The guest token is an HMAC of the order code with the server secret. A retried request therefore returns the same link, and no secret sits in the database. Rotating `JWT_SECRET` invalidates existing guest links.
+- **Access to an order:** the right token, the customer who owns it, or staff/owner. Anyone else gets the same 404 as for a code that does not exist, so codes cannot be probed.
+- **Snapshots:** names, sizes, unit prices, zone name, fee and address are copied onto the order, so later catalog or zone edits never change a past order.
+- **Release:** `release_order_capacity` gives an order's units and slot back inside the caller's transaction. M5 (reject, cancel) and M6 (customer cancel) call it.
+- **Deferred to M4:** card payments (the API answers `card_unavailable`, the UI shows the option disabled), the `payments` table, and confirmation emails. Order status starts at `received` for cash on delivery.
+- The order page lives at `/track/:code` and doubles as the confirmation page; M6 adds cancel and modify to it.
+
+---
+
 ## 14. Delivery plan
 
 Each milestone is one or more pull requests with tests. The demo is updated at the end of each milestone.
@@ -567,7 +581,7 @@ Each milestone is one or more pull requests with tests. The demo is updated at t
 | M0 ✅ | Scaffolding: monorepo, compose, CI, design tokens and a11y lint, auth (register, login, reset, me), and a **first deploy to Railway + Vercel**, so every later milestone ships to a live URL | C4.1, D8 |
 | M1 ✅ | Catalog: public menu, search, product page, and owner CRUD with images | C1, O1.1, O1.2 |
 | M2 ✅ | Schedule and zones: hours, slots, closures, capacity, availability endpoints | O1.3, D6 |
-| M3 | Cart, quote, checkout, COD orders, capacity reservation | C2 |
+| M3 ✅ | Cart, quote, checkout, COD orders, capacity reservation | C2 |
 | M4 | Stripe test payments, webhooks, outbox emails, templates | C2.4, C3.1, O4.2, O4.3 |
 | M5 | Staff queue, lifecycle, delay/cancel, contact, prep sheet | S1 |
 | M6 | Tracking, modify/cancel window, refunds, account pages | C3, C4.2, C4.3, O2 |

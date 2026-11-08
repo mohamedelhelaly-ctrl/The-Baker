@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { useApi } from "../../hooks/useApi";
+import { useCart } from "../../lib/cart";
 import { formatDate } from "../../lib/dates";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { leadTimeText } from "../../lib/money";
 import { s } from "../../lib/strings";
 import { useMoney } from "../../lib/store";
+import { Button } from "../../components/ui/Button";
+import { TextField } from "../../components/ui/TextField";
 import type { DatesResponse, ProductDetail } from "../../lib/types";
 
 export default function ProductPage() {
@@ -31,6 +34,10 @@ export default function ProductPage() {
 
 function ProductView({ product }: { product: ProductDetail }) {
   const money = useMoney();
+  const cart = useCart();
+  const [quantity, setQuantity] = useState("1");
+  const [inscription, setInscription] = useState("");
+  const [added, setAdded] = useState<string | null>(null);
   const [variantId, setVariantId] = useState(product.variants[0]?.id);
   const [photo, setPhoto] = useState(0);
   const variant = product.variants.find((v) => v.id === variantId) ?? product.variants[0];
@@ -114,7 +121,39 @@ function ProductView({ product }: { product: ProductDetail }) {
               <dd>{pickup.data?.earliest_date ? formatDate(pickup.data.earliest_date) : "No dates available soon"}</dd>
             </dl>
           )}
-          <p className="mt-4 rounded-md border-2 border-line bg-surface p-3">{s.product.ordering}</p>
+          <form
+            className="mt-6 rounded-lg border-2 border-line bg-surface p-4"
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!variant) return;
+              const qty = Math.min(100, Math.max(1, Math.floor(Number(quantity)) || 1));
+              cart.add(variant.id, qty, inscription);
+              setQuantity("1");
+              setAdded(`Added ${qty} × ${product.name} (${variant.name}) to your cart.`);
+            }}
+          >
+            <TextField label="Message on the cake (optional)" hint="For example “Happy Birthday Sara”. Up to 80 characters." maxLength={80} value={inscription} onChange={(e) => setInscription(e.target.value)} />
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="w-28">
+                <TextField label="Quantity" type="number" min={1} max={100} inputMode="numeric" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+              </div>
+              <Button type="submit" className="mb-5">
+                Add to cart
+              </Button>
+            </div>
+            <div aria-live="polite">
+              {added && (
+                <p className="font-semibold text-success">
+                  <span aria-hidden="true">✓ </span>
+                  {added}{" "}
+                  <Link to="/cart" className="underline">
+                    View cart
+                  </Link>
+                </p>
+              )}
+            </div>
+          </form>
         </div>
       </div>
 

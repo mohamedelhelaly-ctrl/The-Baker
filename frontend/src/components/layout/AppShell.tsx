@@ -1,5 +1,6 @@
 import { Link, Outlet } from "react-router";
 import { useAuth } from "../../lib/auth";
+import { useCart } from "../../lib/cart";
 import { WEEKDAYS, formatTime, hhmm } from "../../lib/dates";
 import { useStore } from "../../lib/store";
 import { s } from "../../lib/strings";
@@ -8,6 +9,7 @@ import { DisplayMenu } from "./DisplayMenu";
 export function AppShell() {
   const { user, logout, can } = useAuth();
   const { opening_hours } = useStore();
+  const { count } = useCart();
   const link = "inline-flex min-h-11 items-center rounded-md px-3 font-semibold underline-offset-4 hover:underline";
 
   return (
@@ -51,6 +53,9 @@ export function AppShell() {
                 </Link>
               </>
             )}
+            <Link to="/cart" className={link} aria-label={`Cart, ${count} ${count === 1 ? "item" : "items"}`}>
+              <span aria-hidden="true">Cart ({count})</span>
+            </Link>
             <DisplayMenu />
           </nav>
         </div>
