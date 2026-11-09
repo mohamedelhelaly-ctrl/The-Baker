@@ -67,13 +67,14 @@ async def _refund_card_payment(db: AsyncSession, order: Order) -> None:
             raise PaymentProviderError("No payment provider is configured")
         for payment in paid:
             await refund_payment(db, provider, order, payment)
-    except PaymentProviderError:
+    except PaymentProviderError as exc:
         logger.exception("Refund failed for order %s", order.code)
         await db.rollback()
+        reason = str(exc)[:200]  # the provider's own words (no secrets), so staff can see why
         raise ApiError(
             502,
             "refund_failed",
-            "The card refund did not go through, so nothing was changed. Please try again.",
+            f"The card refund did not go through, so nothing was changed. Provider said: {reason}",
         ) from None
 
 

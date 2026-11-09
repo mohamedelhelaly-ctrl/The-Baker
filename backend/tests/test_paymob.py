@@ -622,6 +622,27 @@ async def test_a_full_refund_falls_back_to_a_void_when_paymob_has_not_settled_it
     assert paymob_pay.body("/api/acceptance/void_refund/void") == {"transaction_id": 556}
 
 
+async def test_a_refund_paymob_has_only_initiated_counts_as_accepted(client, owner, paymob_pay):
+    """Paymob reports a refund it has started but not finished as pending. That is not a failure."""
+    r, *_ = await card_order(client, owner)
+    o = r.json()
+    await callback(client, transaction(paymob_pay, id=558))
+    paymob_pay.refund_replies.append(
+        httpx.Response(200, json={"id": 8002, "success": False, "pending": True})
+    )
+    from app.crud.order import order_crud
+
+    async with SessionLocal() as db:
+        order = await order_crud.get_by_code(db, o["code"])
+        payment = (
+            await db.execute(select(Payment).where(Payment.order_id == order.id))
+        ).scalar_one()
+        await refund_payment(db, PaymobProvider(), order, payment)
+        assert payment.status == PaymentRecordStatus.refunded
+        assert order.payment_status == PaymentStatus.refunded
+    assert paymob_pay.calls("/api/acceptance/void_refund/void") == []  # no second attempt
+
+
 async def test_a_refund_paymob_refuses_is_reported_not_recorded(client, owner, paymob_pay):
     r, *_ = await card_order(client, owner)
     o = r.json()

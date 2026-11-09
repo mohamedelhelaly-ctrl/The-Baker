@@ -31,6 +31,23 @@ from app.services.payments.base import (
 
 logger = logging.getLogger("baker.paymob")
 
+
+def _accepted(response: httpx.Response) -> bool:
+    """Did Paymob take the refund or void? A refund is often only *initiated* (reported as
+    pending) and completes later, so a pending transaction counts as accepted, not as a failure."""
+    if response.status_code != 200:
+        return False
+    try:
+        body = response.json()
+    except ValueError:
+        return False
+    return (
+        isinstance(body, dict)
+        and body.get("id") is not None
+        and (body.get("success") is True or body.get("pending") is True)
+    )
+
+
 TIMEOUT = 20
 
 # The exact fields, in the exact order, Paymob signs for a transaction callback (documented list).
@@ -236,13 +253,15 @@ class PaymobProvider:
             "/api/acceptance/void_refund/refund",
             {"transaction_id": transaction_id, "amount_cents": amount},
         )
-        if response.status_code == 200 and response.json().get("success") is True:
+        logger.info("Paymob refund reply %s: %s", response.status_code, response.text[:300])
+        if _accepted(response):
             return str(response.json().get("id"))
         if can_void:  # a full refund of a payment that has not settled yet is a void
             voided = await self._post(
                 "/api/acceptance/void_refund/void", {"transaction_id": transaction_id}
             )
-            if voided.status_code == 200 and voided.json().get("success") is True:
+            logger.info("Paymob void reply %s: %s", voided.status_code, voided.text[:300])
+            if _accepted(voided):
                 return str(voided.json().get("id"))
             raise PaymentProviderError(
                 f"Paymob refused the refund and the void: {voided.text[:300]}"
