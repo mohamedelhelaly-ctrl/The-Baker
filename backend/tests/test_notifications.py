@@ -9,7 +9,7 @@ from sqlalchemy import select
 from app.core.clock import utcnow
 from app.database import SessionLocal
 from app.models.notification import Notification, NotificationStatus
-from app.services.email import EmailError, ResendEmailSender
+from app.services.email import BrevoEmailSender, EmailError
 from app.services.notifications import (
     MAX_ATTEMPTS,
     SAMPLE,
@@ -365,11 +365,11 @@ async def test_the_test_email_button_reports_success_and_failure(
     assert bad["sent"] is False and "mail server down" in bad["error"]
 
 
-# ===================================================================== Resend integration
+# ===================================================================== Brevo integration
 _REAL_CLIENT = httpx.AsyncClient
 
 
-def _patch_resend(monkeypatch, handler):
+def _patch_http(monkeypatch, handler):
     real = _REAL_CLIENT
     monkeypatch.setattr(
         "app.services.email.httpx.AsyncClient",
@@ -377,46 +377,59 @@ def _patch_resend(monkeypatch, handler):
     )
 
 
-async def test_resend_request_is_built_correctly(monkeypatch):
+async def test_brevo_request_is_built_correctly(monkeypatch):
     seen = {}
 
     def handler(request: httpx.Request):
-        seen["url"], seen["auth"], seen["body"] = (
+        seen["url"], seen["key"], seen["body"] = (
             str(request.url),
-            request.headers["authorization"],
+            request.headers["api-key"],
             json.loads(request.content),
         )
-        return httpx.Response(200, json={"id": "em_1"})
+        return httpx.Response(201, json={"messageId": "<1@brevo>"})
 
-    _patch_resend(monkeypatch, handler)
-    await ResendEmailSender("re_test_key", "The Baker <orders@thebaker.test>").send(
+    _patch_http(monkeypatch, handler)
+    await BrevoEmailSender("xkeysib-test", "The Baker <baker@gmail.com>").send(
         "sara@example.com", "Hello", "Body text"
     )
     assert seen == {
-        "url": "https://api.resend.com/emails",
-        "auth": "Bearer re_test_key",
+        "url": "https://api.brevo.com/v3/smtp/email",
+        "key": "xkeysib-test",
         "body": {
-            "from": "The Baker <orders@thebaker.test>",
-            "to": ["sara@example.com"],
+            "sender": {"email": "baker@gmail.com", "name": "The Baker"},
+            "to": [{"email": "sara@example.com"}],
             "subject": "Hello",
-            "text": "Body text",
+            "textContent": "Body text",
         },
     }
 
 
-async def test_resend_errors_become_email_errors(monkeypatch):
-    _patch_resend(
-        monkeypatch, lambda r: httpx.Response(403, json={"message": "domain not verified"})
+async def test_brevo_accepts_a_bare_sender_address_and_reports_errors(monkeypatch):
+    seen = {}
+
+    def ok(request: httpx.Request):
+        seen["sender"] = json.loads(request.content)["sender"]
+        return httpx.Response(201, json={})
+
+    _patch_http(monkeypatch, ok)
+    await BrevoEmailSender("k", "baker@gmail.com").send("x@y.z", "s", "t")
+    assert seen["sender"] == {"email": "baker@gmail.com"}
+
+    _patch_http(
+        monkeypatch,
+        lambda r: httpx.Response(
+            400, json={"code": "invalid_parameter", "message": "Sender is not valid"}
+        ),
     )
-    with pytest.raises(EmailError, match="403.*domain not verified"):
-        await ResendEmailSender("k", "a@b.c").send("x@y.z", "s", "t")
+    with pytest.raises(EmailError, match="400.*Sender is not valid"):
+        await BrevoEmailSender("k", "a@b.c").send("x@y.z", "s", "t")
 
     def boom(request):
         raise httpx.ConnectError("no route")
 
-    _patch_resend(monkeypatch, boom)
-    with pytest.raises(EmailError, match="Could not reach Resend"):
-        await ResendEmailSender("k", "a@b.c").send("x@y.z", "s", "t")
+    _patch_http(monkeypatch, boom)
+    with pytest.raises(EmailError, match="Could not reach Brevo"):
+        await BrevoEmailSender("k", "a@b.c").send("x@y.z", "s", "t")
 
 
 async def test_the_provider_in_use_follows_configuration(monkeypatch):
@@ -424,5 +437,5 @@ async def test_the_provider_in_use_follows_configuration(monkeypatch):
     from app.services import email
 
     assert email.email_provider_name() == "log"
-    monkeypatch.setattr(get_settings(), "resend_api_key", "re_x")
-    assert email.email_provider_name() == "resend"
+    monkeypatch.setattr(get_settings(), "brevo_api_key", "xkeysib-x")
+    assert email.email_provider_name() == "brevo"

@@ -37,7 +37,7 @@ class PaymentSettingsRead(BaseModel):
     mode: str | None  # test | live (Paymob only)
     card_available: bool  # switched on AND provider configured
     webhook_path: str
-    email_provider: str  # resend | log
+    email_provider: str  # brevo | log
     email_from: str
 
 

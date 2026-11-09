@@ -63,9 +63,9 @@ class Settings(BaseSettings):
     paymob_api_url: str = "https://accept.paymob.com"
     paymob_checkout_url: str = "https://eg.checkout.paymob.com"
 
-    # Email: Resend when a key is set, otherwise emails are written to the log
-    resend_api_key: str | None = None
-    email_from: str = "The Baker <onboarding@resend.dev>"
+    # Email: Brevo when a key is set, otherwise emails are written to the log
+    brevo_api_key: str | None = None
+    email_from: str = "The Baker <orders@thebaker.example>"
 
     # In-process workers (expire unpaid orders, send queued emails). Off in tests.
     background_tasks_enabled: bool = True

@@ -239,14 +239,14 @@ describe("demo payment page", () => {
 });
 
 // =========================================================== owner: payments and emails
-const settingsBody = { card_enabled: true, cod_enabled: true, provider: "paymob", mode: "test", card_available: true, webhook_path: "/api/v1/payments/paymob/webhook", email_provider: "log", email_from: "The Baker <onboarding@resend.dev>" };
+const settingsBody = { card_enabled: true, cod_enabled: true, provider: "paymob", mode: "test", card_available: true, webhook_path: "/api/v1/payments/paymob/webhook", email_provider: "log", email_from: "The Baker <baker@gmail.com>" };
 const templates = [
   { key: "order_confirmed", title: "Order confirmed", description: "Sent when an order is placed.", subject: "We received your order {{ order_code }}", body: "Hi {{ customer_name }},\nThanks!", is_active: true, is_customised: false, variables: ["customer_name", "order_code", "order_total"] },
   { key: "order_rejected", title: "Order declined", description: "Sent when an order is declined.", subject: "Declined {{ order_code }}", body: "Reason: {{ reason }}", is_active: true, is_customised: true, variables: ["customer_name", "order_code", "reason"] },
 ];
 const logItems = {
   items: [
-    { id: 1, order_code: "BK-AAAAAA", template_key: "order_confirmed", to_email: "sara@example.com", subject: "We received your order BK-AAAAAA", status: "failed", attempts: 5, last_error: "Resend answered 403", created_at: "2030-12-01T10:30:00Z", sent_at: null },
+    { id: 1, order_code: "BK-AAAAAA", template_key: "order_confirmed", to_email: "sara@example.com", subject: "We received your order BK-AAAAAA", status: "failed", attempts: 5, last_error: "Brevo answered 400", created_at: "2030-12-01T10:30:00Z", sent_at: null },
     { id: 2, order_code: null, template_key: "password_reset", to_email: "omar@example.com", subject: "Reset your password", status: "sent", attempts: 1, last_error: null, created_at: "2030-12-01T10:00:00Z", sent_at: "2030-12-01T10:00:02Z" },
   ],
   total: 2, page: 1, page_size: 10, total_pages: 1,
@@ -317,17 +317,23 @@ describe("owner: payments and emails", () => {
   });
 
   it("shows why a test email failed", async () => {
-    adminMocks({ "POST /admin/email-test": { body: { sent: false, to: "owner@demo.thebaker", error: "Resend answered 403: domain not verified" } } });
+    adminMocks({ "POST /admin/email-test": { body: { sent: false, to: "owner@demo.thebaker", error: "Brevo answered 400: sender not valid" } } });
     renderApp(<App />, "/admin/payments");
     await userEvent.click(await screen.findByRole("button", { name: "Send me a test email" }));
     expect(await screen.findByText("The test email could not be sent")).toBeInTheDocument();
-    expect(screen.getByText(/domain not verified/)).toBeInTheDocument();
+    expect(screen.getByText(/sender not valid/)).toBeInTheDocument();
   });
 
   it("describes a connected email service", async () => {
-    adminMocks({ "/admin/payments": { body: { ...settingsBody, email_provider: "resend", email_from: "The Baker <orders@thebaker.test>" } } });
+    adminMocks({ "/admin/payments": { body: { ...settingsBody, email_provider: "brevo", email_from: "The Baker <orders@thebaker.test>" } } });
     renderApp(<App />, "/admin/payments");
     expect(await screen.findByText("The Baker <orders@thebaker.test>")).toBeInTheDocument();
+  });
+
+  it("names Brevo when that is the connected service", async () => {
+    adminMocks({ "/admin/payments": { body: { ...settingsBody, email_provider: "brevo", email_from: "The Baker <baker@gmail.com>" } } });
+    renderApp(<App />, "/admin/payments");
+    expect(await screen.findByText(/sent through Brevo from/)).toBeInTheDocument();
   });
 });
 
@@ -381,7 +387,7 @@ describe("owner: email log", () => {
     renderApp(<App />, "/admin/payments");
     const user = userEvent.setup();
     const table = await screen.findByRole("table", { name: "Emails sent and queued" });
-    expect(within(table).getByText("Resend answered 403")).toBeInTheDocument();
+    expect(within(table).getByText("Brevo answered 400")).toBeInTheDocument();
     expect(within(table).getByText("Order BK-AAAAAA")).toBeInTheDocument();
     expect(within(table).getByText("Failed")).toBeInTheDocument();
     expect(within(table).getByText("Sent")).toBeInTheDocument();

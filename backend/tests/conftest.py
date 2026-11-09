@@ -23,7 +23,7 @@ for _name in (
     "PAYMOB_INTEGRATION_ID",
 ):
     os.environ.pop(_name, None)  # unset, so they are None
-os.environ["RESEND_API_KEY"] = ""
+os.environ["BREVO_API_KEY"] = ""
 os.environ["FRONTEND_URL"] = "http://frontend.test"
 os.environ["STORAGE_BACKEND"] = "local"
 os.environ["UPLOAD_DIR"] = tempfile.mkdtemp(prefix="baker-uploads-")

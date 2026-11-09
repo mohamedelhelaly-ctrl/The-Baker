@@ -23,7 +23,7 @@ PyJWT==2.15.1
 bcrypt==5.0.0
 
 # --- Integrations ---
-httpx==0.28.1                   # Resend email API
+httpx==0.28.1                   # Brevo email API, Paymob
 boto3==1.43.126                 # Cloudflare R2 (S3-compatible) storage
 pillow==13.0.0                  # image validation and re-encoding
 Jinja2==3.1.6                   # notification templates (sandboxed)

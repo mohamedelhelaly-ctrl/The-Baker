@@ -12,7 +12,7 @@ Design docs: [requirements](docs/REQUIREMENTS_DRAFT.md) · [system design](docs/
 - **M1** catalog: done. Customers browse the menu (category, occasion, search, sort, pagination) and open product pages. The owner manages products, sizes and prices, photos (with required alt text), categories and occasions.
 - **M2** schedule and delivery: done. Weekly opening hours, closed dates, fixed two-hour time slots with order limits, delivery zones with fees and minimum orders, and weekday rules per product. One rules engine answers "which dates and slots can this cart be booked for". Owners manage it all under **Manage shop**, staff can view it, and customers see opening hours, delivery fees and the earliest delivery or pickup date for each product.
 - **M3** cart, checkout and cash-on-delivery orders: done. Customers add products (with an optional cake message) to a cart, then check out in five steps (delivery or pickup, date and time, contact details, payment, review). The server prices everything, shows the delivery fee and total before ordering, reserves capacity so the last cake or slot can never be sold twice, and a retried or double-clicked submit never creates two orders. Guests get a private tracking link, signed-in customers see their own orders.
-- **M4** card payments and emails: done. Customers can pay by card (Paymob, Egypt, test mode) or cash. A card order holds its slot while the customer pays, the provider's signed webhook confirms it, unpaid orders expire after 35 minutes and free their capacity, and money that arrives too late is refunded automatically. Confirmation emails go through a retrying outbox (Resend in production). The owner switches payment methods on and off, edits the wording of every email with a live preview, and sees an email log with retry, all under **Manage shop, Payments and emails**.
+- **M4** card payments and emails: done. Customers can pay by card (Paymob, Egypt, test mode) or cash. A card order holds its slot while the customer pays, the provider's signed webhook confirms it, unpaid orders expire after 35 minutes and free their capacity, and money that arrives too late is refunded automatically. Confirmation emails go through a retrying outbox (Brevo in production). The owner switches payment methods on and off, edits the wording of every email with a live preview, and sees an email log with retry, all under **Manage shop, Payments and emails**.
 - **M5** staff order queue: done. Staff and the owner open **Orders** to see the day's orders, filter by stage, delivery or pickup and search, then accept or decline (with a reason), move an order through preparing, ready and delivered or collected, mark it late, cancel it, and email the customer. Declining or cancelling a paid card order refunds it and frees the slot in the same step. A printable **Prep sheet** adds up what to bake that day and lists the messages to write on cakes.
 - Next: **M6**, customer tracking with change and cancel, refunds by policy, and account pages. See [DESIGN.md §14](docs/DESIGN.md).
 
@@ -32,7 +32,7 @@ docker compose up --build -d             # migrates, creates the first owner, se
 
 With `SEED_DEMO=true` in `backend/.env` (the example default), about 30 demo products plus default opening hours, two-hour slots and delivery zones are loaded on first start (each part only fills an empty table). Sign in as the owner (`FIRST_OWNER_EMAIL` / `FIRST_OWNER_PASSWORD`) and open **Manage shop** to edit them. Product photos are stored on a Docker volume locally.
 
-Without a Resend key (see below) emails, including password-reset links, are written to the backend log instead of being sent: `docker compose logs backend | grep reset-password`.
+Without a Brevo key (see below) emails, including password-reset links, are written to the backend log instead of being sent: `docker compose logs backend | grep reset-password`.
 
 ## Develop without rebuilding containers
 
@@ -92,11 +92,14 @@ Paymob is an Egyptian payment provider. Building and testing is free. Taking rea
 
 Behaviour worth knowing: a declined card attempt does not cancel the order (the customer can retry on the same page); an unpaid order is cancelled after 35 minutes and its slot freed; Paymob cannot close a payment page, so a payment that still arrives after cancellation is refunded automatically; same-day full refunds fall back to a void. For local development use `PAYMENT_PROVIDER=fake` (a practice page). `PAYMENT_PROVIDER=fake` is refused in production.
 
-**Resend (emails)**
-1. Create a free Resend account and an **API key**.
-2. Railway variables: `RESEND_API_KEY` and `EMAIL_FROM` (for example `The Baker <orders@yourdomain.com>`).
-3. To email customers, verify a sending domain in Resend and use an address on it. Until then `onboarding@resend.dev` only delivers to your own Resend account email, which is enough to test with.
-4. Use **Send me a test email** on the Payments and emails screen to check the setup. Without a key, emails are only written to the server log.
+**Brevo (emails, free, no domain needed, about 300 a day)**
+
+Without a key, emails are only written to the server log.
+1. Create a free Brevo account. Under **SMTP & API, API Keys**, create an **API key**.
+2. Under **Senders, Domains & Dedicated IPs, Senders**, add the address you want to send from (for example your Gmail) and confirm it with the code Brevo emails to it.
+3. Railway variables: `BREVO_API_KEY` and `EMAIL_FROM`, for example `The Baker <you@gmail.com>`. The address must be exactly the verified sender.
+4. Mail sent from a Gmail address can land in spam, because Gmail only vouches for mail sent by Google. Fine for a demo; use your own domain for real customers.
+5. Use **Send me a test email** on the Payments and emails screen to check the setup.
 
 **Cloudflare R2 (product photos)**
 1. Cloudflare dashboard, **R2 Object Storage**, create a bucket (for example `the-baker`).

@@ -314,7 +314,7 @@ All integrations sit behind small interfaces in `services/`, with a fake impleme
 |---|---|---|---|
 | `PaymentProvider` | `create_payment(order) → redirect_url`, `parse_webhook(req) → event`, `refund(payment, amount)` | `PaymobProvider` (Unified Checkout, **test mode**, D3) | `FakeProvider` |
 | `CashOnDelivery` | same interface, no-op redirect | built-in | built-in |
-| `EmailSender` | `send(to, subject, html, text)` | Resend (HTTP API) | Mailpit container / console |
+| `EmailSender` | `send(to, subject, html, text)` | Brevo (HTTP API) | Mailpit container / console |
 | `FileStorage` | `put(file) → key,url`, `delete(key)` | S3-compatible bucket (Cloudflare R2), because managed hosts have temporary disks (D8) | local disk |
 
 - **Stripe was removed.** It does not support Egyptian merchants. Paymob, an Egyptian provider with a free test mode, replaced it behind the same `PaymentProvider` interface, which is exactly the swap the interface was designed for.
@@ -503,7 +503,7 @@ CI runs on GitHub Actions with path filters (`backend/**`, `frontend/**`).
 | Database | `postgres:16-alpine` in compose | **Railway** Postgres, in the same project as the backend |
 | Backend | compose service, self-migrating entrypoint | **Railway** service built from `backend/Dockerfile` (root directory `backend/`), health check at `/healthz` |
 | Frontend | compose nginx | **Vercel** project (root directory `frontend/`, Vite preset) |
-| Email | Mailpit (web UI on :8025) | Resend |
+| Email | Mailpit (web UI on :8025) | Brevo |
 | Files | local volume | Cloudflare R2 bucket |
 | Payments | FakeProvider | Paymob test mode + callback address on the Railway domain |
 
@@ -512,7 +512,7 @@ Browser ──▶ Vercel (static SPA, CDN)
    │
    └── fetch + Bearer JWT ──▶ Railway: FastAPI ──▶ Railway Postgres
                                    ▲    │
-              Paymob callbacks ────┘    ├──▶ Resend (email)
+              Paymob callbacks ────┘    ├──▶ Brevo (email)
                                         └──▶ R2 (product images)
 ```
 
@@ -522,7 +522,7 @@ Browser ──▶ Vercel (static SPA, CDN)
 - **`DATABASE_URL`** comes from Railway's Postgres service. `app/database.py` rewrites the scheme to `postgresql+asyncpg://` for the async engine and `postgresql+psycopg://` for the sync batch engine.
 - The pool size is set explicitly to fit the Railway Postgres connection limit, as in ARCHITECTURE_OVERVIEW §2.
 - There is **one replica**, because background tasks and the TTL cache run in-process (§7). The tasks already use `SKIP LOCKED`, so moving the cache to Redis is the only change needed to scale out.
-- Secrets are set as Railway variables: `JWT_SECRET`, `PAYMOB_SECRET_KEY`, `PAYMOB_PUBLIC_KEY`, `PAYMOB_HMAC_SECRET`, `PAYMOB_INTEGRATION_ID`, `PUBLIC_API_URL`, `RESEND_API_KEY`, `R2_*`, `FRONTEND_URL`, `CORS_ORIGINS`.
+- Secrets are set as Railway variables: `JWT_SECRET`, `PAYMOB_SECRET_KEY`, `PAYMOB_PUBLIC_KEY`, `PAYMOB_HMAC_SECRET`, `PAYMOB_INTEGRATION_ID`, `PUBLIC_API_URL`, `BREVO_API_KEY`, `R2_*`, `FRONTEND_URL`, `CORS_ORIGINS`.
 
 ### 13.2 Vercel (frontend)
 

@@ -328,7 +328,7 @@ export interface PaymentSettings {
   mode: "test" | "live" | null;
   card_available: boolean;
   webhook_path: string;
-  email_provider: "resend" | "log";
+  email_provider: "brevo" | "log";
   email_from: string;
 }
 export interface EmailTemplate {

@@ -91,14 +91,14 @@ function EmailSetup() {
   const settings = useApi<PaymentSettings>("/admin/payments");
   const [result, setResult] = useState<{ sent: boolean; to: string; error: string | null } | null>(null);
   const [sending, setSending] = useState(false);
-  const live = settings.data?.email_provider === "resend";
+  const live = settings.data?.email_provider === "brevo";
   return (
     <Section id="email-h" title="Email setup">
       <p className="mb-3">
         {settings.data &&
           (live ? (
             <>
-              Emails are sent through Resend from <strong>{settings.data.email_from}</strong>.
+              Emails are sent through Brevo from <strong>{settings.data.email_from}</strong>.
             </>
           ) : (
             "Email is not connected yet, so emails are only written to the server log and customers do not receive them."
