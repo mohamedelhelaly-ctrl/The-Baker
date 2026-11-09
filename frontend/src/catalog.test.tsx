@@ -31,12 +31,20 @@ describe("money helpers", () => {
 });
 
 describe("home and menu", () => {
-  it("home shows categories, occasions and favourites with no axe violations", async () => {
-    mockFetch({ ...store, ...taxonomy, "/products": { body: page([cake]) } });
+  it("home is a photograph, the menu groups with prices, and the visit details, with no axe violations", async () => {
+    mockFetch({ ...store, ...taxonomy, "/products": { body: page([cake, bread]) } });
     const { container } = renderApp(<App />, "/");
-    expect(await screen.findByRole("link", { name: "Celebration Cakes" })).toHaveAttribute("href", "/menu?category=celebration-cakes");
-    expect(screen.getByRole("link", { name: "Birthday" })).toHaveAttribute("href", "/menu?occasion=birthday");
-    expect(await screen.findByRole("heading", { level: 3, name: "Triple Chocolate Cake" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Bakery in Cairo, baked to order" })).toBeInTheDocument();
+    expect(screen.getByAltText("Rye loaves on the stone floor of an open bread oven")).toBeInTheDocument();
+    const groupLink = await screen.findByRole("link", { name: "Celebration Cakes" });
+    expect(groupLink).toHaveAttribute("href", "/menu?category=celebration-cakes");
+    const group = groupLink.closest("section")!;
+    const product = await within(group).findByRole("link", { name: "Triple Chocolate Cake" });
+    expect(product).toHaveAttribute("href", "/products/triple-chocolate-cake");
+    expect(within(group).getByText("EGP 650")).toBeInTheDocument(); // the price, whole pounds, beside the name
+    expect(screen.getByRole("heading", { level: 2, name: "Menu and prices" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "Visit" })).toBeInTheDocument();
+    expect(screen.getByText("Photographs via Wikimedia Commons")).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -56,8 +64,9 @@ describe("home and menu", () => {
     renderApp(<App />, "/menu");
     const user = userEvent.setup();
     await screen.findByText("2 products");
-    await user.selectOptions(screen.getByLabelText("Category"), "breads");
-    await user.selectOptions(screen.getByLabelText("Sort by"), "price_asc");
+    await user.click(screen.getByRole("radio", { name: "Breads" })); // category pills
+    await user.click(screen.getByRole("button", { name: "Filters" })); // sort lives in the Filters panel
+    await user.click(screen.getByRole("radio", { name: "Price: low to high" }));
     await waitFor(() => {
       const last = calls.filter((c) => c.url.includes("/products?")).at(-1)!.url;
       expect(last).toContain("category=breads");
@@ -167,6 +176,7 @@ describe("owner area", () => {
     const { container } = renderApp(<App />, "/admin/products");
     const table = await screen.findByRole("table");
     expect(within(table).getByRole("link", { name: "Triple Chocolate Cake" })).toHaveAttribute("href", "/admin/products/1");
+    await userEvent.click(screen.getByRole("button", { name: /account menu/ })); // Manage shop lives in the account menu
     expect(screen.getByRole("link", { name: "Manage shop" })).toBeInTheDocument();
     expect(within(table).getByText("On the menu")).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();

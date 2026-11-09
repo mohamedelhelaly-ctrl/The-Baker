@@ -492,7 +492,7 @@ async def test_order_is_validated(client, owner):
     assert await order_count() == 0
 
 
-async def test_card_payment_is_not_available_yet(client, owner):
+async def test_card_is_refused_when_no_provider_is_set_up(client, owner):
     z, p, slots = await shop(client, owner)
     with at(MON):
         r = await place(

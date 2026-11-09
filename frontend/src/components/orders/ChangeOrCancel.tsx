@@ -7,6 +7,7 @@ import { useStore } from "../../lib/store";
 import type { Order } from "../../lib/types";
 import { Alert } from "../ui/Alert";
 import { Button } from "../ui/Button";
+import { buttonClass } from "../ui/buttonClass";
 import { TextField } from "../ui/TextField";
 
 /** Change or cancel an order, while the owner's window is open and before preparation starts. */
@@ -23,7 +24,7 @@ export function ChangeOrCancel({ order, token, onCancelled }: { order: Order; to
 
   if (!order.can_change) {
     return (
-      <section aria-labelledby="change-h" className="mt-8 rounded-md border-2 border-line p-4">
+      <section aria-labelledby="change-h" className="band mt-6 rounded-2xl p-6">
         <h2 id="change-h" className="font-display text-xl font-bold">
           Need to change something?
         </h2>
@@ -50,7 +51,7 @@ export function ChangeOrCancel({ order, token, onCancelled }: { order: Order; to
 
   const refund = refundSentence(order);
   return (
-    <section aria-labelledby="change-h" className="mt-8 rounded-md border-2 border-line p-4">
+    <section aria-labelledby="change-h" className="band mt-6 rounded-2xl p-6">
       <h2 id="change-h" className="font-display text-xl font-bold">
         Change or cancel this order
       </h2>
@@ -58,19 +59,16 @@ export function ChangeOrCancel({ order, token, onCancelled }: { order: Order; to
         You can change or cancel it until <strong>{order.can_modify_until && formatDateTime(order.can_modify_until)}</strong>.
       </p>
       {policy_text && <p className="mt-1 text-muted">{policy_text}</p>}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Link
-          to={`/track/${encodeURIComponent(order.code)}/change${query}`}
-          className="inline-flex min-h-11 items-center rounded-md border-2 border-line px-4 font-semibold"
-        >
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Link to={`/track/${encodeURIComponent(order.code)}/change${query}`} className={buttonClass("secondary")}>
           Change date, time or address
         </Link>
-        <button type="button" aria-expanded={asking} className="min-h-11 rounded-md border-2 border-line px-4 font-semibold" onClick={() => setAsking(!asking)}>
+        <button type="button" aria-expanded={asking} className="btn btn-quiet" onClick={() => setAsking(!asking)}>
           Cancel this order…
         </button>
       </div>
       {asking && (
-        <div className="mt-4 max-w-xl">
+        <div className="card mt-5 max-w-xl p-5">
           {error && <Alert kind="error">{error}</Alert>}
           <p className="mb-3 font-semibold">Are you sure you want to cancel?</p>
           {refund && <p className="mb-3">{refund}</p>}
@@ -79,7 +77,7 @@ export function ChangeOrCancel({ order, token, onCancelled }: { order: Order; to
             <Button type="button" disabled={pending} onClick={cancel}>
               {pending ? "Cancelling…" : "Yes, cancel my order"}
             </Button>
-            <button type="button" className="min-h-11 rounded-md border-2 border-line px-4 font-semibold" onClick={() => setAsking(false)}>
+            <button type="button" className="btn btn-quiet" onClick={() => setAsking(false)}>
               Keep my order
             </button>
           </div>

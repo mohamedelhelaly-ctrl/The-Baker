@@ -14,7 +14,7 @@ export const Alert = forwardRef<HTMLDivElement, Props>(function Alert({ kind, ti
       ref={ref}
       tabIndex={-1}
       role={isError ? "alert" : "status"}
-      className={`mb-5 rounded-md border-2 p-4 ${
+      className={`mb-5 rounded-xl border border-l-4 p-4 ${
         isError ? "border-danger bg-danger-bg text-danger" : "border-success bg-success-bg text-success"
       }`}
     >

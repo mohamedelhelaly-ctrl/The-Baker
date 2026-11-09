@@ -7,9 +7,9 @@ export function AuthCard({ title, children }: { title: string; children: ReactNo
     document.title = `${title} · The Baker`;
   }, [title]);
   return (
-    <div className="mx-auto max-w-md">
-      <h1 className="mb-6 font-display text-3xl font-bold">{title}</h1>
-      {children}
+    <div className="mx-auto max-w-md py-4 sm:py-10">
+      <h1 className="mb-6 text-center font-display text-4xl font-bold">{title}</h1>
+      <div className="card p-6 sm:p-8">{children}</div>
     </div>
   );
 }

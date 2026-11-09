@@ -6,7 +6,7 @@ Online ordering for a fictional Cairo bakery. Customers browse and order cakes a
 
 **Stack:** FastAPI + SQLAlchemy (async) + PostgreSQL, React + TypeScript + Vite + Tailwind. Monorepo, Docker Compose locally, Railway (API + database) and Vercel (web) for the demo, Cloudflare R2 for photos, Paymob for card payments, Brevo for email.
 
-Design docs: [requirements](docs/REQUIREMENTS_DRAFT.md) · [system design](docs/DESIGN.md) · [accessibility audit](docs/ACCESSIBILITY.md) · [architecture conventions](docs/ARCHITECTURE_OVERVIEW.md)
+Design docs: [requirements](docs/REQUIREMENTS_DRAFT.md) · [system design](docs/DESIGN.md) · [accessibility audit](docs/ACCESSIBILITY.md) · [tests explained](docs/TESTS.md) · [architecture conventions](docs/ARCHITECTURE_OVERVIEW.md)
 
 ## What it does
 
@@ -164,9 +164,10 @@ Without a key, emails are only written to the server log.
 
 ## Testing
 
-- Backend: `python -m pytest` (about 280 tests, on a real Postgres). They cover the rules that matter most: nobody can buy the last cake twice, a retried request never creates a second order, a payment callback is verified and handled once, a refund that fails changes nothing, and each role sees only what it should.
-- Frontend: `npm test` (about 240 tests with Testing Library and axe). Components are found by their accessible names, the way a screen reader finds them.
+- Backend: `python -m pytest` (278 tests, on a real Postgres). They cover the rules that matter most: nobody can buy the last cake twice, a retried request never creates a second order, a payment callback is verified and handled once, a refund that fails changes nothing, and each role sees only what it should.
+- Frontend: `npm test` (243 tests with Testing Library and axe). Components are found by their accessible names, the way a screen reader finds them.
 - Time is frozen in tests, so results do not depend on the day or hour they run.
+- Every test is listed with what it proves in [docs/TESTS.md](docs/TESTS.md).
 
 ## Conventions
 

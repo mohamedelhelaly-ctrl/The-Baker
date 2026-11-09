@@ -15,7 +15,8 @@ describe("signing out", () => {
     mockFetch({ "/auth/me": { body: customer }, ...store });
     renderApp(<App />, "/account");
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Sign out" }));
+    await user.click(await screen.findByRole("button", { name: /account menu/ }));
+    await user.click(screen.getByRole("button", { name: "Sign out" }));
     expect(await screen.findByRole("heading", { level: 1, name: "Sign in" })).toBeInTheDocument();
     expect(localStorage.getItem("baker.token")).toBeNull();
     await waitFor(() => expect(cartInStorage()).toEqual([]));
@@ -28,7 +29,8 @@ describe("signing out", () => {
     mockFetch({ "/auth/me": { body: customer }, ...store, "POST /checkout/quote": { body: (req: Parameters<typeof fakeQuote>[0]) => fakeQuote(req) } });
     renderApp(<App />, "/cart");
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Sign out" }));
+    await user.click(await screen.findByRole("button", { name: /account menu/ }));
+    await user.click(screen.getByRole("button", { name: "Sign out" }));
     expect(await screen.findByRole("heading", { level: 1, name: "Sign in" })).toBeInTheDocument();
     await waitFor(() => expect(cartInStorage()).toEqual([]));
   });
@@ -39,7 +41,8 @@ describe("signing out", () => {
     mockFetch({ "/auth/me": { body: customer }, ...store });
     renderApp(<App />, "/account");
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Sign out" }));
+    await user.click(await screen.findByRole("button", { name: /account menu/ }));
+    await user.click(screen.getByRole("button", { name: "Sign out" }));
     await screen.findByRole("heading", { level: 1, name: "Sign in" });
     mockFetch({
       ...store,

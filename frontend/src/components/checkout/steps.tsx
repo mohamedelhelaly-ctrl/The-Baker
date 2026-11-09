@@ -31,23 +31,23 @@ export function FulfilmentStep({ f, set, errors, zoneProblem, saved = [], onUseS
   const money = useMoney();
   const zones = useApi<DeliveryZone[]>("/delivery-zones");
   const { pickup_location, pickup_instructions } = useStore();
-  const choice = "mb-2 flex min-h-11 cursor-pointer items-center gap-3 rounded-md border-2 border-line bg-surface px-3 has-[:checked]:border-primary";
+  const choice = "mb-2 flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-line bg-surface px-4 transition hover:border-ink has-[:checked]:border-primary has-[:checked]:bg-tint has-[:checked]:shadow-[inset_0_0_0_1px_var(--primary)] has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)]";
   return (
     <>
       <fieldset className="mb-6">
         <legend className="mb-2 font-semibold">How would you like to get your order?</legend>
         <label className={choice}>
-          <input type="radio" name="fulfilment" className="size-5" checked={f.fulfilment === "delivery"} onChange={() => set("fulfilment", "delivery")} />
+          <input type="radio" name="fulfilment" className="size-5 accent-[var(--primary)]" checked={f.fulfilment === "delivery"} onChange={() => set("fulfilment", "delivery")} />
           Delivery
         </label>
         <label className={choice}>
-          <input type="radio" name="fulfilment" className="size-5" checked={f.fulfilment === "pickup"} onChange={() => set("fulfilment", "pickup")} />
+          <input type="radio" name="fulfilment" className="size-5 accent-[var(--primary)]" checked={f.fulfilment === "pickup"} onChange={() => set("fulfilment", "pickup")} />
           Pickup from the bakery (no delivery fee)
         </label>
       </fieldset>
 
       {f.fulfilment === "pickup" && (pickup_location || pickup_instructions) && (
-        <p className="mb-4 rounded-md border-2 border-line p-3">
+        <p className="mb-5 rounded-xl bg-tint p-4">
           <strong>Where to collect:</strong> {pickup_location}
           {pickup_instructions && <span className="block">{pickup_instructions}</span>}
         </p>
@@ -133,8 +133,8 @@ export function ScheduleStep({ f, set, errors, lines, dateProblem, slotProblem, 
           {slots.data.slots.map((s) => {
             const label = `${formatTime(hhmm(s.starts_at))} to ${formatTime(hhmm(s.ends_at))}`;
             return (
-              <label key={s.slot_id} className={`mb-2 flex min-h-11 items-center gap-3 rounded-md border-2 px-3 has-[:checked]:border-primary ${s.available ? "cursor-pointer border-line bg-surface" : "border-line bg-bg text-muted"}`}>
-                <input type="radio" name="slot" className="size-5" disabled={!s.available} checked={f.slotId === String(s.slot_id)} onChange={() => set("slotId", String(s.slot_id))} />
+              <label key={s.slot_id} className={`mb-2 flex min-h-12 items-center gap-3 rounded-xl border px-4 transition has-[:checked]:border-primary has-[:checked]:bg-tint has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)] ${s.available ? "cursor-pointer border-line bg-surface hover:border-ink" : "border-hairline bg-tint text-muted"}`}>
+                <input type="radio" name="slot" className="size-5 accent-[var(--primary)]" disabled={!s.available} checked={f.slotId === String(s.slot_id)} onChange={() => set("slotId", String(s.slot_id))} />
                 <span className="flex-1">{label}</span>
                 <span className="text-sm">{s.available ? (s.remaining_orders <= 2 ? `Only ${s.remaining_orders} left` : "") : s.message}</span>
               </label>
@@ -165,7 +165,7 @@ export function ContactStep({ f, set, errors }: { f: FormState; set: SetField; e
 
 export function PaymentStep({ f, set, methods }: { f: FormState; set: SetField; methods: ("cod" | "card")[] }) {
   const choice = (on: boolean) =>
-    `mb-2 flex min-h-11 items-center gap-3 rounded-md border-2 px-3 ${on ? "cursor-pointer border-line bg-surface has-[:checked]:border-primary" : "border-line bg-bg text-muted"}`;
+    `mb-2 flex min-h-12 items-center gap-3 rounded-xl border px-4 transition ${on ? "cursor-pointer border-line bg-surface hover:border-ink has-[:checked]:border-primary has-[:checked]:bg-tint has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)]" : "border-hairline bg-tint text-muted"}`;
   const hasCod = methods.includes("cod");
   const hasCard = methods.includes("card");
   return (
@@ -173,12 +173,12 @@ export function PaymentStep({ f, set, methods }: { f: FormState; set: SetField; 
       <legend className="mb-2 font-semibold">How would you like to pay?</legend>
       {hasCod && (
         <label className={choice(true)}>
-          <input type="radio" name="payment" className="size-5" checked={f.payment === "cod"} onChange={() => set("payment", "cod")} />
+          <input type="radio" name="payment" className="size-5 accent-[var(--primary)]" checked={f.payment === "cod"} onChange={() => set("payment", "cod")} />
           Cash on delivery or pickup
         </label>
       )}
       <label className={choice(hasCard)}>
-        <input type="radio" name="payment" className="size-5" disabled={!hasCard} checked={hasCard && f.payment === "card"} onChange={() => set("payment", "card")} />
+        <input type="radio" name="payment" className="size-5 accent-[var(--primary)]" disabled={!hasCard} checked={hasCard && f.payment === "card"} onChange={() => set("payment", "card")} />
         {hasCard ? "Pay online by card" : "Pay online by card (not available right now)"}
       </label>
       <p className="mt-2 text-muted">

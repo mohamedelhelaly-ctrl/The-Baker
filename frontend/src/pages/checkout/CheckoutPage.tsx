@@ -201,21 +201,27 @@ export default function CheckoutPage() {
 
   return (
     <>
-      <h1 className="mb-4 font-display text-3xl font-bold">Checkout</h1>
-      <ol aria-label="Checkout steps" className="mb-6 flex flex-wrap gap-2">
+      <h1 className="mb-6 font-display text-4xl font-bold">Checkout</h1>
+      <ol aria-label="Checkout steps" className="mb-3 grid grid-cols-5 gap-2 sm:mb-8">
         {STEPS.map((name, i) => (
-          <li key={name} aria-current={i === step ? "step" : undefined} className={`rounded-full border-2 px-3 py-1 text-sm font-semibold ${i === step ? "border-primary bg-primary text-primary-ink" : i < step ? "border-success text-success" : "border-line text-muted"}`}>
-            <span aria-hidden="true">{i < step ? "✓ " : `${i + 1}. `}</span>
-            {name}
-            {i < step && <>{" "}<span className="sr-only">(done)</span></>}
-            {i === step && <>{" "}<span className="sr-only">(current step)</span></>}
+          <li key={name} aria-current={i === step ? "step" : undefined}>
+            <span aria-hidden="true" className={`block h-1.5 rounded-full ${i <= step ? "bg-primary" : "bg-hairline"}`} />
+            <span className={`sr-only mt-2 text-sm sm:not-sr-only sm:block ${i === step ? "font-bold" : "text-muted"}`}>
+              <span aria-hidden="true">{i < step ? "✓ " : ""}</span>
+              {name}
+              {i < step && <span className="sr-only"> (done)</span>}
+              {i === step && <span className="sr-only"> (current step)</span>}
+            </span>
           </li>
         ))}
       </ol>
+      <p className="mb-6 text-sm text-muted sm:hidden" aria-hidden="true">
+        Step {step + 1} of {STEPS.length}
+      </p>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
-        <div>
-          <h2 ref={headingRef} tabIndex={-1} className="mb-4 font-display text-2xl font-bold">
+      <div className="grid items-start gap-8 lg:grid-cols-[1fr_22rem]">
+        <div className="card p-6 sm:p-8">
+          <h2 ref={headingRef} tabIndex={-1} className="mb-6 font-display text-2xl font-bold">
             {STEPS[step]}
           </h2>
 
@@ -236,13 +242,15 @@ export default function CheckoutPage() {
               {step === 1 && <ScheduleStep f={f} set={set} errors={errors} lines={cart.lines} dateProblem={stepProblem.date} slotProblem={stepProblem.slot} />}
               {step === 2 && <ContactStep f={f} set={set} errors={errors} />}
               {step === 3 && <PaymentStep f={{ ...f, payment }} set={set} methods={methods} />}
-              <div className="flex flex-wrap gap-3">
-                {step > 0 && (
-                  <button type="button" onClick={() => { setErrors({}); setStep(step - 1); }} className="min-h-11 rounded-md border-2 border-line px-5 font-semibold">
-                    Back
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                {step > 0 ? (
+                  <button type="button" onClick={() => { setErrors({}); setStep(step - 1); }} className="btn btn-quiet">
+                    <span aria-hidden="true">← </span>Back
                   </button>
+                ) : (
+                  <span />
                 )}
-                <Button type="submit" disabled={Boolean(blockedByQuote)}>
+                <Button type="submit" disabled={Boolean(blockedByQuote)} className="px-8">
                   Continue
                 </Button>
               </div>
@@ -251,15 +259,15 @@ export default function CheckoutPage() {
             <form onSubmit={place} noValidate>
               <Review f={{ ...f, payment }} />
               {policy_text && (
-                <p className="mt-4 rounded-md border-2 border-line p-3">
+                <p className="mt-5 rounded-xl bg-tint p-4 text-sm">
                   <strong>Changing your mind:</strong> {policy_text}
                 </p>
               )}
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button type="button" onClick={() => setStep(3)} className="min-h-11 rounded-md border-2 border-line px-5 font-semibold">
-                  Back
+              <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+                <button type="button" onClick={() => setStep(3)} className="btn btn-quiet">
+                  <span aria-hidden="true">← </span>Back
                 </button>
-                <Button type="submit" disabled={placing || !quote?.ready}>
+                <Button type="submit" disabled={placing || !quote?.ready} className="px-8">
                   {placing ? "Placing your order…" : `${payment === "card" ? "Place order and pay" : "Place order"} · ${quote ? money(quote.total) : ""}`}
                 </Button>
               </div>
@@ -279,7 +287,7 @@ export default function CheckoutPage() {
 function Review({ f }: { f: FormState }) {
   const { data } = useSlotLabel(f);
   return (
-    <dl className="grid gap-4">
+    <dl className="divide-y divide-hairline rounded-xl border border-hairline">
       <Row label={f.fulfilment === "delivery" ? "Delivery to" : "Pickup"}>
         {f.fulfilment === "delivery" ? (
           <>
@@ -308,8 +316,8 @@ function Review({ f }: { f: FormState }) {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border-2 border-line bg-surface p-4">
-      <dt className="font-semibold">{label}</dt>
+    <div className="grid gap-1 p-4 sm:grid-cols-[9rem_1fr]">
+      <dt className="font-semibold text-muted">{label}</dt>
       <dd>{children}</dd>
     </div>
   );

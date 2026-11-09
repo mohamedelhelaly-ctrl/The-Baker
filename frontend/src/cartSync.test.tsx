@@ -124,6 +124,7 @@ describe("sign out and back in", () => {
     renderApp(<App />, "/account");
     const user = userEvent.setup();
     expect(await screen.findByRole("link", { name: "Cart, 2 items" })).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /account menu/ }));
     await user.click(screen.getByRole("button", { name: "Sign out" }));
     await screen.findByRole("heading", { level: 1, name: "Sign in" });
     expect(screen.getByRole("link", { name: "Cart, 0 items" })).toBeInTheDocument();

@@ -29,14 +29,14 @@ export default function ForgotPasswordPage() {
           <form onSubmit={onSubmit} noValidate>
             <TextField label={s.auth.email} type="email" name="email" autoComplete="email" required value={email}
               onChange={(e) => setEmail(e.target.value)} error={error?.fields.email} />
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending} className="w-full">
               {s.auth.forgotSubmit}
             </Button>
           </form>
         </>
       )}
-      <p className="mt-6">
-        <Link to="/login" className="underline">
+      <p className="mt-6 text-center">
+        <Link to="/login" className="link">
           {s.auth.backToSignIn}
         </Link>
       </p>

@@ -31,13 +31,13 @@ export default function RegisterPage() {
           onChange={set("phone")} error={error?.fields.phone} />
         <TextField label={s.auth.password} type="password" name="password" autoComplete="new-password" required
           hint={s.auth.passwordHint} value={form.password} onChange={set("password")} error={error?.fields.password} />
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending} className="w-full">
           {s.auth.registerSubmit}
         </Button>
       </form>
-      <p className="mt-6">
+      <p className="mt-6 text-center">
         {s.auth.haveAccount}{" "}
-        <Link to="/login" className="underline">
+        <Link to="/login" className="link">
           {s.nav.signIn}
         </Link>
       </p>

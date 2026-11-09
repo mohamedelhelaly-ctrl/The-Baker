@@ -1,10 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
+import { buttonClass, type ButtonVariant } from "./buttonClass";
 
-export function Button({ className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      {...props}
-      className={`min-h-11 rounded-md bg-primary px-5 py-2 font-semibold text-primary-ink hover:bg-primary-hover disabled:opacity-60 ${className}`}
-    />
-  );
+/** One primary action per area; use `secondary` for the next most important and `quiet` for the rest. */
+export function Button({ variant = "primary", className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
+  return <button {...props} className={buttonClass(variant, className)} />;
 }

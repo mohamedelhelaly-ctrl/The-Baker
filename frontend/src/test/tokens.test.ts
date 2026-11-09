@@ -26,6 +26,7 @@ const TEXT_PAIRS: [string, string][] = [
   ["primary-ink", "primary"], ["primary-ink", "primary-hover"],
   ["danger", "danger-bg"], ["danger", "bg"], ["danger", "surface"],
   ["success", "success-bg"], ["success", "bg"],
+  ["ink", "tint"], ["ink-muted", "tint"], ["primary", "tint"], ["primary", "surface"], ["primary", "bg"],
 ];
 const UI_PAIRS: [string, string][] = [["border", "bg"], ["border", "surface"], ["focus", "bg"], ["focus", "surface"]];
 

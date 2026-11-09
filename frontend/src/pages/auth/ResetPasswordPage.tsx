@@ -32,14 +32,14 @@ export default function ResetPasswordPage() {
             <TextField label={s.auth.newPassword} type="password" name="new-password" autoComplete="new-password"
               required hint={s.auth.passwordHint} value={password} onChange={(e) => setPassword(e.target.value)}
               error={error?.fields.new_password} />
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending} className="w-full">
               {s.auth.resetSubmit}
             </Button>
           </form>
         </>
       )}
-      <p className="mt-6">
-        <Link to="/login" className="underline">
+      <p className="mt-6 text-center">
+        <Link to="/login" className="link">
           {s.auth.backToSignIn}
         </Link>
       </p>

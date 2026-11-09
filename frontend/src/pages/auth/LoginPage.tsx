@@ -43,18 +43,18 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           error={error?.fields.password}
         />
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending} className="w-full">
           {s.auth.loginSubmit}
         </Button>
       </form>
-      <p className="mt-6">
-        <Link to="/forgot-password" className="underline">
+      <p className="mt-6 text-center">
+        <Link to="/forgot-password" className="link">
           {s.auth.forgotLink}
         </Link>
       </p>
-      <p className="mt-2">
+      <p className="mt-2 text-center">
         {s.auth.noAccount}{" "}
-        <Link to="/register" className="underline">
+        <Link to="/register" className="link">
           {s.nav.register}
         </Link>
       </p>

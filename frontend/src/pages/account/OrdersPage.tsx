@@ -17,13 +17,13 @@ export default function OrdersPage() {
 
   return (
     <>
-      <h2 className="mb-4 font-display text-2xl font-bold">My orders</h2>
+      <h2 className="mb-5 font-display text-2xl font-bold">My orders</h2>
       {error && <p role="alert" className="text-danger">We could not load your orders. Please try again.</p>}
       {loading && !data && <output>Loading…</output>}
       {data && data.items.length === 0 && (
         <p className="max-w-prose">
           You have not placed an order with this account yet.{" "}
-          <Link to="/menu" className="underline">
+          <Link to="/menu" className="link">
             Browse the menu
           </Link>
           . Orders placed as a guest are not listed here.
@@ -32,12 +32,12 @@ export default function OrdersPage() {
       {data && data.items.length > 0 && (
         <ul className="grid gap-3">
           {data.items.map((o) => (
-            <li key={o.code} className="rounded-md border-2 border-line p-4">
+            <li key={o.code} className="card p-5">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <Link to={`/track/${o.code}`} className="text-lg font-bold underline">
+                <Link to={`/track/${o.code}`} className="font-display text-xl font-bold hover:underline">
                   Order {o.code}
                 </Link>
-                <StatusBadge kind={o.status === "rejected" || o.status === "cancelled" ? "off" : o.status === "delivered" || o.status === "picked_up" ? "ok" : "warn"}>
+                <StatusBadge kind={o.status === "rejected" || o.status === "cancelled" ? "off" : o.status === "delivered" || o.status === "picked_up" ? "ok" : "info"}>
                   {STATUS_LABEL[o.status]}
                 </StatusBadge>
               </div>

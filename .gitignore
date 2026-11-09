@@ -222,3 +222,7 @@ __marimo__/
 # Local product photo uploads (dev)
 backend/uploads/
 logs/
+.vitest/
+.claude/
+
+.taste-skill/

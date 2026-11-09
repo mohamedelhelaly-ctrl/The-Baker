@@ -10,7 +10,7 @@ import { api, ApiError } from "../../lib/api";
 import { useMoney } from "../../lib/store";
 import type { DeliveryZone, SavedAddress } from "../../lib/types";
 
-const btn = "min-h-11 rounded-md border-2 border-line px-4 font-semibold disabled:opacity-60";
+const btn = "btn btn-quiet";
 
 /** Delivery addresses saved for faster checkout. */
 export default function AddressesPage() {
@@ -38,9 +38,9 @@ export default function AddressesPage() {
       <div aria-live="polite">{message && <Alert kind={message.kind}>{message.text}</Alert>}</div>
       {list.loading && !list.data && <output>Loading…</output>}
       {list.data && list.data.length === 0 && editing === null && <p className="mb-4">You have no saved addresses yet.</p>}
-      <ul className="mb-6 grid gap-3">
+      <ul className="mb-6 grid gap-4 sm:grid-cols-2">
         {list.data?.map((a) => (
-          <li key={a.id} className="rounded-md border-2 border-line p-4">
+          <li key={a.id} className="card p-5">
             <h3 className="font-bold">
               {a.label} {a.is_default && <span className="font-normal text-muted">(default)</span>}
             </h3>
@@ -77,7 +77,7 @@ export default function AddressesPage() {
         ))}
       </ul>
       {editing === null ? (
-        <button type="button" className={btn} onClick={() => { setMessage(null); setEditing("new"); }}>
+        <button type="button" className="btn btn-secondary" onClick={() => { setMessage(null); setEditing("new"); }}>
           Add an address
         </button>
       ) : (
@@ -118,7 +118,7 @@ function AddressForm({ address, onDone }: { address: SavedAddress | null; onDone
   const fields = error?.fields ?? {};
 
   return (
-    <form noValidate onSubmit={onSubmit} className="max-w-xl rounded-md border-2 border-line p-4" aria-labelledby="address-form-h">
+    <form noValidate onSubmit={onSubmit} className="card max-w-xl p-6" aria-labelledby="address-form-h">
       <h3 id="address-form-h" className="mb-3 font-display text-xl font-bold">
         {address ? `Edit ${address.label}` : "Add an address"}
       </h3>

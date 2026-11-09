@@ -4,6 +4,7 @@ import { TextField } from "../ui/TextField";
 
 interface Props {
   label: string;
+  hideLabel?: boolean;
   value: number;
   onCommit: (quantity: number) => void;
 }
@@ -12,12 +13,13 @@ interface Props {
  * A number box that can be emptied and retyped. While focused it shows what the customer is typing;
  * valid numbers are committed straight away, and on blur it snaps back to the real quantity.
  */
-export function QuantityField({ label, value, onCommit }: Props) {
+export function QuantityField({ label, hideLabel, value, onCommit }: Props) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(String(value));
   return (
     <TextField
       label={label}
+      hideLabel={hideLabel}
       type="number"
       min={1}
       max={MAX_QTY}

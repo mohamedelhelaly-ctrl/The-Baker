@@ -6,11 +6,11 @@ export function OrderSummary({ quote, loading, deliveryChosen }: { quote: Quote 
   const money = useMoney();
   if (!quote) return null;
   return (
-    <section aria-labelledby="summary-h" className="rounded-lg border-2 border-line bg-surface p-4">
-      <h2 id="summary-h" className="mb-3 font-display text-xl font-bold">
+    <section aria-labelledby="summary-h" className="card p-5">
+      <h2 id="summary-h" className="mb-4 font-display text-xl font-bold">
         Order summary
       </h2>
-      <ul className="mb-3 grid gap-2">
+      <ul className="mb-4 grid gap-3">
         {quote.lines.map((l) => (
           <li key={`${l.variant_id}-${l.inscription ?? ""}`} className="flex justify-between gap-3">
             <span>
@@ -22,7 +22,7 @@ export function OrderSummary({ quote, loading, deliveryChosen }: { quote: Quote 
           </li>
         ))}
       </ul>
-      <dl className="grid grid-cols-[1fr_auto] gap-y-1 border-t-2 border-line pt-3" aria-live="polite" aria-busy={loading}>
+      <dl className="grid grid-cols-[1fr_auto] gap-y-1.5 border-t border-hairline pt-4" aria-live="polite" aria-busy={loading}>
         <dt>Subtotal</dt>
         <dd>{money(quote.subtotal)}</dd>
         <dt>Delivery</dt>
