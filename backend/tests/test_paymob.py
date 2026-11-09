@@ -643,6 +643,24 @@ async def test_a_refund_paymob_has_only_initiated_counts_as_accepted(client, own
     assert paymob_pay.calls("/api/acceptance/void_refund/void") == []  # no second attempt
 
 
+async def test_a_refund_answered_with_201_created_is_accepted(client, owner, paymob_pay):
+    """Paymob really answers a successful refund with 201 Created (seen in production logs)."""
+    r, *_ = await card_order(client, owner)
+    o = r.json()
+    await callback(client, transaction(paymob_pay, id=560))
+    paymob_pay.refund_replies.append(httpx.Response(201, json={"id": 8003, "success": True}))
+    from app.crud.order import order_crud
+
+    async with SessionLocal() as db:
+        order = await order_crud.get_by_code(db, o["code"])
+        payment = (
+            await db.execute(select(Payment).where(Payment.order_id == order.id))
+        ).scalar_one()
+        await refund_payment(db, PaymobProvider(), order, payment)
+        assert payment.status == PaymentRecordStatus.refunded
+    assert paymob_pay.calls("/api/acceptance/void_refund/void") == []  # no second attempt
+
+
 async def test_a_refund_paymob_refuses_is_reported_not_recorded(client, owner, paymob_pay):
     r, *_ = await card_order(client, owner)
     o = r.json()

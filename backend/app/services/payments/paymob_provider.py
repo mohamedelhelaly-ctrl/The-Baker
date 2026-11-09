@@ -35,7 +35,7 @@ logger = logging.getLogger("baker.paymob")
 def _accepted(response: httpx.Response) -> bool:
     """Did Paymob take the refund or void? A refund is often only *initiated* (reported as
     pending) and completes later, so a pending transaction counts as accepted, not as a failure."""
-    if response.status_code != 200:
+    if not 200 <= response.status_code < 300:  # Paymob answers a refund with 201 Created
         return False
     try:
         body = response.json()
