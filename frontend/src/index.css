@@ -228,13 +228,6 @@ body {
 @layer utilities { .font-display { font-weight: 400; } }
 
 /* ---- the home page (a place page: one section per screen) ---------------------------------------- */
-.ground-brand { background: var(--primary-hover); color: var(--primary-ink); }
-:root[data-contrast="high"] .ground-brand { background: #000; }
-.btn-inverse { background: var(--primary-ink); color: var(--primary-hover); }
-.btn-inverse:hover:not(:disabled) { background: var(--tint); }
-/* On the home page the closing footer is one screen: the close fills it, the directory sits at its foot. */
-footer.closing--home { display: flex; min-height: 100svh; flex-direction: column; }
-footer.closing--home > section.ground-brand { flex: 1; }
 
 /* A phone action bar: the main action at the foot, only once the hero's button has gone. */
 .actionbar { display: none; }

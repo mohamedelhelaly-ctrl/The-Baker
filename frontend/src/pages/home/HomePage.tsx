@@ -55,28 +55,21 @@ export default function HomePage() {
     if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
   }, [hash]);
 
-  // The phone's action bar shows once the hero's button has scrolled away, and hides while the close's button is in view.
+  // The phone's action bar shows once the hero's button has scrolled away.
   useEffect(() => {
     const bar = document.querySelector<HTMLElement>(".actionbar");
     const hero = heroButton.current;
     if (!bar || !hero || typeof IntersectionObserver === "undefined") return;
-    const state = { hero: true, close: false };
-    const apply = () => (bar.dataset.show = String(!state.hero && !state.close));
-    const closeBtn = document.querySelector("footer.closing .btn-inverse");
+    const state = { hero: true };
+    const apply = () => (bar.dataset.show = String(!state.hero));
     const heroObs = new IntersectionObserver(([e]) => {
       state.hero = e.isIntersecting;
       apply();
     });
-    const closeObs = new IntersectionObserver(([e]) => {
-      state.close = e.isIntersecting;
-      apply();
-    });
     heroObs.observe(hero);
-    if (closeBtn) closeObs.observe(closeBtn);
     apply();
     return () => {
       heroObs.disconnect();
-      closeObs.disconnect();
     };
   }, []);
 
@@ -128,7 +121,7 @@ export default function HomePage() {
             </p>
             <p className="enter-fade mt-6" style={{ animationDelay: "540ms" }}>
               <Link ref={heroButton} to="/menu" className={buttonClass("primary", "px-8 max-sm:w-full")}>
-                Order a cake
+                Order now
                 <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="m-arrow">
                   <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>

@@ -3,7 +3,6 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
 import { WEEKDAYS, formatTime, hhmm } from "../../lib/dates";
-import { todayLine } from "../../lib/hours";
 import { useStore } from "../../lib/store";
 import { s } from "../../lib/strings";
 import { buttonClass } from "../ui/buttonClass";
@@ -32,7 +31,6 @@ export function AppShell() {
 
   const navLink = ({ isActive }: { isActive: boolean }) => `navlink ${isActive ? "navlink-active" : ""}`;
   const hasContact = store.phone || store.whatsapp || store.email || store.address;
-  const today = todayLine(opening_hours);
 
   return (
     <>
@@ -91,21 +89,6 @@ export function AppShell() {
         <Outlet />
       </main>
       <footer id="closing" className={`closing print:hidden ${isHome ? "closing--home" : ""}`}>
-        {isHome && (
-          <section aria-labelledby="close-h" className="ground-brand">
-            <div className="wrap page flex h-full flex-col justify-center py-16">
-              <h2 id="close-h" className="max-w-[18ch] font-display text-4xl leading-tight sm:text-5xl">
-                Order a cake for pickup or delivery
-              </h2>
-              {today && <p className="mt-5 text-lg">Open today {today}</p>}
-              <p className="mt-8">
-                <Link to="/menu" className="btn btn-inverse px-8">
-                  Order a cake
-                </Link>
-              </p>
-            </div>
-          </section>
-        )}
         <div className="wrap page grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <h2 className="t-label mb-3">Visit</h2>
@@ -186,7 +169,7 @@ export function AppShell() {
       {isHome && (
         <nav aria-label="Order" className="actionbar print:hidden">
           <Link to="/menu" className={buttonClass("primary", "w-full")}>
-            Order a cake
+            Order now
           </Link>
         </nav>
       )}
