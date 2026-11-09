@@ -15,7 +15,6 @@ interface CartContextValue {
   count: number;
   add: (variantId: number, quantity: number, inscription?: string) => void;
   setQuantity: (key: string, quantity: number) => void;
-  setInscription: (key: string, inscription: string) => void;
   remove: (key: string) => void;
   clear: () => void;
 }
@@ -137,21 +136,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     (key: string, quantity: number) => setLines((prev) => prev.map((l) => (lineKey(l) === key ? { ...l, quantity: clamp(quantity) } : l))),
     [],
   );
-  const setInscription = useCallback(
-    (key: string, inscription: string) =>
-      setLines((prev) => {
-        const next = inscription.trim().slice(0, 80);
-        const merged = prev.map((l) => (lineKey(l) === key ? { ...l, inscription: next } : l));
-        // Two lines that became identical are merged into one.
-        return merged.reduce<CartLine[]>((acc, l) => {
-          const same = acc.find((x) => lineKey(x) === lineKey(l));
-          if (same) same.quantity = clamp(same.quantity + l.quantity);
-          else acc.push({ ...l });
-          return acc;
-        }, []);
-      }),
-    [],
-  );
   const remove = useCallback((key: string) => setLines((prev) => prev.filter((l) => lineKey(l) !== key)), []);
   const clear = useCallback(() => {
     setLines([]);
@@ -159,8 +143,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ lines, count: lines.reduce((n, l) => n + l.quantity, 0), add, setQuantity, setInscription, remove, clear }),
-    [lines, add, setQuantity, setInscription, remove, clear],
+    () => ({ lines, count: lines.reduce((n, l) => n + l.quantity, 0), add, setQuantity, remove, clear }),
+    [lines, add, setQuantity, remove, clear],
   );
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

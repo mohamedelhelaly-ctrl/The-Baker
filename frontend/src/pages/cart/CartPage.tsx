@@ -3,7 +3,6 @@ import { Link } from "react-router";
 import { OrderSummary } from "../../components/checkout/OrderSummary";
 import { Alert } from "../../components/ui/Alert";
 import { QuantityField } from "../../components/cart/QuantityField";
-import { TextField } from "../../components/ui/TextField";
 import { useQuote } from "../../hooks/useQuote";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { useCart } from "../../lib/cart";
@@ -72,8 +71,13 @@ export default function CartPage() {
                       {q.message}
                     </p>
                   )}
+                  {line.inscription && (
+                    <p className="mt-1">
+                      <span className="font-semibold">Message on the cake:</span> “{line.inscription}”
+                    </p>
+                  )}
                   <p className="mt-1 font-semibold">{q?.available ? `${money(q.unit_price)} each · ${money(q.line_total)}` : ""}</p>
-                  <div className="mt-3 grid gap-x-3 sm:grid-cols-[8rem_1fr]">
+                  <div className="mt-3 grid gap-x-3 sm:grid-cols-[8rem]">
                     <QuantityField
                       label={`Quantity for ${name}`}
                       value={line.quantity}
@@ -81,12 +85,6 @@ export default function CartPage() {
                         cart.setQuantity(key, n);
                         setNotice(`Quantity for ${name} is now ${n}.`);
                       }}
-                    />
-                    <TextField
-                      label={`Message on the cake for ${name}`}
-                      maxLength={80}
-                      value={line.inscription}
-                      onChange={(e) => cart.setInscription(key, e.target.value)}
                     />
                   </div>
                   <button

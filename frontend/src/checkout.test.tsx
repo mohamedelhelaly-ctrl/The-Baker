@@ -106,14 +106,18 @@ describe("cart page", () => {
     expect(JSON.parse(localStorage.getItem("baker.cart")!)).toEqual([]);
   });
 
-  it("edits the cake message and merges lines that become identical", async () => {
-    seedCart([{ variantId: 10, quantity: 1, inscription: "A" }, { variantId: 10, quantity: 2, inscription: "" }]);
+  it("shows the cake message in the cart but does not let it be edited there", async () => {
+    seedCart([{ variantId: 10, quantity: 1, inscription: "Happy Birthday" }, { variantId: 10, quantity: 2, inscription: "" }]);
     mockFetch({ ...store, ...quoteRoute() });
     renderApp(<App />, "/cart");
-    const user = userEvent.setup();
-    const boxes = await screen.findAllByLabelText(/Message on the cake for/);
-    await user.clear(boxes[0]);
-    await waitFor(() => expect(JSON.parse(localStorage.getItem("baker.cart")!)).toEqual([{ variantId: 10, quantity: 3, inscription: "" }]));
+    expect(await screen.findByText(/Message on the cake:/)).toBeInTheDocument();
+    expect(screen.getByText(/“Happy Birthday”/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Message on the cake for/)).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText(/Quantity for/)).toHaveLength(2); // quantity is still editable
+    expect(JSON.parse(localStorage.getItem("baker.cart")!)).toEqual([
+      { variantId: 10, quantity: 1, inscription: "Happy Birthday" },
+      { variantId: 10, quantity: 2, inscription: "" },
+    ]);
   });
 
   it("flags lines that are no longer available and blocks checkout until they are removed", async () => {
