@@ -7,11 +7,15 @@ from PIL import Image, ImageDraw, ImageFont
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
+from app.core.security import hash_password
 from app.crud.category import category_crud
 from app.crud.occasion import occasion_crud
 from app.crud.product import product_crud
+from app.crud.user import user_crud
 from app.data.demo_catalog import CATEGORIES, OCCASIONS, PRODUCTS
 from app.models.category import Category
+from app.models.user import UserRole
 from app.services.images import new_image_key
 from app.services.storage import get_storage
 
@@ -138,3 +142,30 @@ async def seed_demo_schedule(db: AsyncSession) -> bool:
     if changed:
         logger.info("Seeded default opening hours, time slots and delivery zones")
     return changed
+
+
+DEMO_ACCOUNTS = (
+    ("customer@demo.thebaker", "Demo Customer", "customer"),
+    ("staff@demo.thebaker", "Demo Staff", "staff"),
+)
+
+
+async def seed_demo_accounts(db: AsyncSession) -> list[str]:
+    """A demo customer and a demo staff member, so a reviewer can try every role. They only exist when
+    DEMO_PASSWORD is set (they share it), and an existing account is never touched. Returns the emails created."""
+    password = get_settings().demo_password
+    if not password:
+        return []
+    created = []
+    for email, name, role in DEMO_ACCOUNTS:
+        if await user_crud.get_by_email(db, email):
+            continue
+        await user_crud.create(
+            db,
+            email=email,
+            password_hash=await hash_password(password),
+            full_name=name,
+            role=UserRole(role),
+        )
+        created.append(email)
+    return created

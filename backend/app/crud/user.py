@@ -43,6 +43,26 @@ class UserCRUD:
         user.password_hash = password_hash
         await db.commit()
 
+    async def list_team(self, db: AsyncSession) -> list[User]:
+        """Staff and owners (customers are not part of the team)."""
+        rows = await db.execute(
+            select(User)
+            .where(User.role.in_([UserRole.staff, UserRole.owner]))
+            .order_by(User.role.desc(), User.full_name, User.id)
+        )
+        return list(rows.scalars())
+
+    async def count_active_owners(self, db: AsyncSession) -> int:
+        """Counts the active owners and locks their rows until the caller commits, so two owners who
+        change each other at the same moment are handled one after the other."""
+        ids = await db.execute(
+            select(User.id)
+            .where(User.role == UserRole.owner, User.is_active.is_(True))
+            .order_by(User.id)
+            .with_for_update()
+        )
+        return len(ids.all())
+
     async def has_owner(self, db: AsyncSession) -> bool:
         result = await db.execute(select(User.id).where(User.role == UserRole.owner).limit(1))
         return result.first() is not None

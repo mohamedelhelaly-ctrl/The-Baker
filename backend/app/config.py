@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     first_owner_password: str | None = None
     first_owner_name: str = "Owner"
 
+    # Demo accounts (customer and staff) created with SEED_DEMO when this is set. They share this
+    # password, so use it only on a demo site and give it to reviewers, never to real customers.
+    demo_password: str | None = None
+
     rate_limit_enabled: bool = True
 
     # Store

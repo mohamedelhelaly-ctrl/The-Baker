@@ -84,3 +84,9 @@ class StoreRead(BaseModel):
     payment_methods: list[str] = ["cod"]  # what checkout offers: cod and/or card
     cancellation_window_hours: int = 24
     policy_text: str = ""  # the cancellation and refund rules, in words
+    phone: str | None = None
+    whatsapp: str | None = None
+    email: str | None = None
+    address: str | None = None
+    pickup_location: str | None = None
+    pickup_instructions: str | None = None

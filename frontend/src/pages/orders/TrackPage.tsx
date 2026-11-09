@@ -3,6 +3,7 @@ import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import { ChangeOrCancel } from "../../components/orders/ChangeOrCancel";
 import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
+import { useStore } from "../../lib/store";
 import { useApi } from "../../hooks/useApi";
 import { api, ApiError } from "../../lib/api";
 import { redirectTo } from "../../lib/navigation";
@@ -72,6 +73,7 @@ function OrderView({ order, justPlaced, justChanged, returnedPaid, returnedCance
   returnedCancelled: boolean;
   token: string | null;
 }) {
+  const { pickup_location, pickup_instructions } = useStore();
   const [payError, setPayError] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
   const awaiting = order.status === "pending_payment";
@@ -187,7 +189,10 @@ function OrderView({ order, justPlaced, justChanged, returnedPaid, returnedCance
               {order.delivery_address.landmark && <span className="block text-muted">{order.delivery_address.landmark}</span>}
             </p>
           ) : (
-            <p className="mt-1">Collect your order from the bakery.</p>
+            <p className="mt-1">
+              {pickup_location ? `Collect your order from: ${pickup_location}` : "Collect your order from the bakery."}
+              {pickup_instructions && <span className="block text-muted">{pickup_instructions}</span>}
+            </p>
           )}
           <p className="mt-3">
             {order.contact_name}

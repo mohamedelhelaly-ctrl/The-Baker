@@ -32,13 +32,19 @@ async def store(db: AsyncSession = Depends(get_db)):
     s = get_settings()
     row = await store_settings_crud.get(db)
     return StoreRead(
-        name=s.business_name,
+        name=row.business_name or s.business_name,
         currency=s.currency,
         currency_exponent=exponent(s.currency),
         opening_hours=await schedule_crud.list_hours(db),
         payment_methods=await available_methods(db),
         cancellation_window_hours=row.cancellation_window_hours,
         policy_text=policy_text(row),
+        phone=row.phone,
+        whatsapp=row.whatsapp,
+        email=row.contact_email,
+        address=row.address,
+        pickup_location=row.pickup_location,
+        pickup_instructions=row.pickup_instructions,
     )
 
 

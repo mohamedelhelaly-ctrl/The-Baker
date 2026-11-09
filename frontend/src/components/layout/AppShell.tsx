@@ -8,7 +8,8 @@ import { DisplayMenu } from "./DisplayMenu";
 
 export function AppShell() {
   const { user, logout, can } = useAuth();
-  const { opening_hours } = useStore();
+  const store = useStore();
+  const { opening_hours } = store;
   const { count, clear: clearCart } = useCart();
   const navigate = useNavigate();
 
@@ -32,7 +33,7 @@ export function AppShell() {
       <header className="sticky top-0 z-10 border-b-2 border-line bg-surface print:hidden">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-2">
           <Link to="/" className="font-display text-2xl font-bold">
-            {s.brand}
+            {store.name || s.brand}
           </Link>
           <nav aria-label="Main" className="flex flex-wrap items-center gap-1">
             <Link to="/menu" className={link}>
@@ -105,7 +106,39 @@ export function AppShell() {
                 Delivery areas and fees
               </Link>
             </p>
-            <p className="mt-4 text-muted">{s.brand} · Demo store, no real orders.</p>
+            {(store.phone || store.whatsapp || store.email || store.address) && (
+              <>
+                <h2 className="mt-4 mb-2 font-display text-xl font-bold">Contact</h2>
+                <ul className="grid gap-1">
+                  {store.address && <li>{store.address}</li>}
+                  {store.phone && (
+                    <li>
+                      Phone:{" "}
+                      <a className="underline" href={`tel:${store.phone.replace(/\s/g, "")}`}>
+                        {store.phone}
+                      </a>
+                    </li>
+                  )}
+                  {store.whatsapp && (
+                    <li>
+                      WhatsApp:{" "}
+                      <a className="underline" href={`https://wa.me/${store.whatsapp.replace(/\D/g, "")}`}>
+                        {store.whatsapp}
+                      </a>
+                    </li>
+                  )}
+                  {store.email && (
+                    <li>
+                      Email:{" "}
+                      <a className="underline" href={`mailto:${store.email}`}>
+                        {store.email}
+                      </a>
+                    </li>
+                  )}
+                </ul>
+              </>
+            )}
+            <p className="mt-4 text-muted">{store.name || s.brand} · Demo store, no real orders.</p>
           </div>
         </div>
       </footer>

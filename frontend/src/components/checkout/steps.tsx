@@ -3,7 +3,7 @@ import { TextField } from "../ui/TextField";
 import { useApi } from "../../hooks/useApi";
 import { formatDate, formatTime, hhmm } from "../../lib/dates";
 import { itemsParam } from "../../lib/orders";
-import { useMoney } from "../../lib/store";
+import { useMoney, useStore } from "../../lib/store";
 import type { DatesResponse, DeliveryZone, Fulfilment, SavedAddress, SlotsResponse } from "../../lib/types";
 
 export interface FormState {
@@ -30,6 +30,7 @@ export function FulfilmentStep({ f, set, errors, zoneProblem, saved = [], onUseS
 }) {
   const money = useMoney();
   const zones = useApi<DeliveryZone[]>("/delivery-zones");
+  const { pickup_location, pickup_instructions } = useStore();
   const choice = "mb-2 flex min-h-11 cursor-pointer items-center gap-3 rounded-md border-2 border-line bg-surface px-3 has-[:checked]:border-primary";
   return (
     <>
@@ -44,6 +45,13 @@ export function FulfilmentStep({ f, set, errors, zoneProblem, saved = [], onUseS
           Pickup from the bakery (no delivery fee)
         </label>
       </fieldset>
+
+      {f.fulfilment === "pickup" && (pickup_location || pickup_instructions) && (
+        <p className="mb-4 rounded-md border-2 border-line p-3">
+          <strong>Where to collect:</strong> {pickup_location}
+          {pickup_instructions && <span className="block">{pickup_instructions}</span>}
+        </p>
+      )}
 
       {f.fulfilment === "delivery" && (
         <>

@@ -45,6 +45,12 @@ export interface StoreInfo {
   payment_methods: ("cod" | "card")[];
   cancellation_window_hours: number;
   policy_text: string;
+  phone: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  address: string | null;
+  pickup_location: string | null;
+  pickup_instructions: string | null;
 }
 
 export interface CategoryBrief {
@@ -394,4 +400,25 @@ export interface Policy {
   refund_percentage: number;
   policy_note: string | null;
   preview: string;
+}
+
+// ---- owner: team and shop details ----
+export interface TeamMember {
+  id: number;
+  email: string;
+  full_name: string;
+  phone: string | null;
+  role: "staff" | "owner";
+  is_active: boolean;
+  last_login_at: string | null;
+  created_at: string;
+}
+export interface ShopDetails {
+  business_name: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  address: string | null;
+  pickup_location: string | null;
+  pickup_instructions: string | null;
 }

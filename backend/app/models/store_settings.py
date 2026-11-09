@@ -32,6 +32,14 @@ class StoreSettings(Base):
     )
     refund_percentage: Mapped[int] = mapped_column(Integer, default=100, server_default="100")
     policy_note: Mapped[str | None] = mapped_column(String(500))  # extra wording shown to customers
+    # Business details and pickup (O4.1, O4.4). Empty business_name falls back to BUSINESS_NAME.
+    business_name: Mapped[str | None] = mapped_column(String(80))
+    phone: Mapped[str | None] = mapped_column(String(30))
+    whatsapp: Mapped[str | None] = mapped_column(String(30))
+    contact_email: Mapped[str | None] = mapped_column(String(255))
+    address: Mapped[str | None] = mapped_column(String(300))
+    pickup_location: Mapped[str | None] = mapped_column(String(200))
+    pickup_instructions: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

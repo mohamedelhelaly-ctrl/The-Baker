@@ -1,21 +1,49 @@
 # The Baker
 
-Online ordering for a fictional Cairo bakery: customers browse and order cakes and bakes for delivery or pickup, staff run the order queue, and the owner manages the catalog and settings.
+Online ordering for a fictional Cairo bakery. Customers browse and order cakes and bakes for delivery or pickup and pay by card or cash, staff run the order queue, and the owner manages the menu, schedule, policies, team and shop details.
 
-**Stack:** FastAPI + SQLAlchemy (async) + PostgreSQL, React + TypeScript + Vite + Tailwind. Monorepo, Docker Compose locally, Railway (API + database) and Vercel (web) for the demo.
+**Live demo:** <https://the-baker-seven.vercel.app> (test-mode payments only, no real orders or money)
 
-Design docs: [requirements](docs/REQUIREMENTS_DRAFT.md) · [system design](docs/DESIGN.md) · [architecture conventions](docs/ARCHITECTURE_OVERVIEW.md)
+**Stack:** FastAPI + SQLAlchemy (async) + PostgreSQL, React + TypeScript + Vite + Tailwind. Monorepo, Docker Compose locally, Railway (API + database) and Vercel (web) for the demo, Cloudflare R2 for photos, Paymob for card payments, Brevo for email.
+
+Design docs: [requirements](docs/REQUIREMENTS_DRAFT.md) · [system design](docs/DESIGN.md) · [accessibility audit](docs/ACCESSIBILITY.md) · [architecture conventions](docs/ARCHITECTURE_OVERVIEW.md)
+
+## What it does
+
+**Customers**
+- Browse the menu (category, occasion, search, sort), open a product, choose a size and write a message for the cake.
+- Check out as a guest or with an account: delivery or pickup, a date and a two-hour time slot, then pay by card or cash. The server prices everything and reserves capacity, so the last cake or slot can never be sold twice and a double click never places two orders.
+- Track the order from a private link (or from **My orders**), change its date, time, address or notes, or cancel it while the bakery's window is open. Cancelling a card order is refunded by the owner's policy.
+- Keep a profile, saved addresses and a cart that follows the account.
+
+**Staff**
+- A live order queue with filters and search: accept or decline (with a reason), move an order through preparing, ready and delivered or collected, mark it late, cancel it, and email the customer. Declining or cancelling a paid card order refunds it and frees the slot.
+- A printable **prep sheet**: what to bake for a day, with the messages to write on cakes.
+
+**Owner**
+- Menu: products, sizes and prices, photos (alt text required), categories, occasions, availability rules and daily capacity.
+- Schedule: opening hours, closed dates, time slots with order limits, delivery zones with fees and minimum orders.
+- Policies: how long customers can change or cancel, and what a card cancellation refunds (full, a percentage, none).
+- Payments and emails: switch card and cash on or off, edit the wording of every email with a live preview, read the email log and retry failures.
+- Shop details (contact, pickup place) and the **team** (add, change and remove staff and owner accounts).
+
+**Accessibility** (WCAG 2.2 AA) is a requirement, not an extra: skip link, visible focus, labelled fields with linked errors, live announcements, text size, high contrast and reduced motion switches. Lint, axe and contrast tests run in CI. See the [audit](docs/ACCESSIBILITY.md), including what still needs a person to test.
+
+## Try it
+
+Sign in at the demo with these accounts (the password is given with the project; it is never stored in the repository):
+
+| Role | Email |
+|---|---|
+| Owner | the `FIRST_OWNER_EMAIL` account |
+| Staff | `staff@demo.thebaker` |
+| Customer | `customer@demo.thebaker` |
+
+Or just browse and order as a guest. For a card payment use Paymob's test card: Visa `4111 1111 1111 1111`, expiry `01/39`, CVV `123`, name `Test Account`.
 
 ## Status
 
-- **M0** scaffolding and authentication: done and deployed.
-- **M1** catalog: done. Customers browse the menu (category, occasion, search, sort, pagination) and open product pages. The owner manages products, sizes and prices, photos (with required alt text), categories and occasions.
-- **M2** schedule and delivery: done. Weekly opening hours, closed dates, fixed two-hour time slots with order limits, delivery zones with fees and minimum orders, and weekday rules per product. One rules engine answers "which dates and slots can this cart be booked for". Owners manage it all under **Manage shop**, staff can view it, and customers see opening hours, delivery fees and the earliest delivery or pickup date for each product.
-- **M3** cart, checkout and cash-on-delivery orders: done. Customers add products (with an optional cake message) to a cart, then check out in five steps (delivery or pickup, date and time, contact details, payment, review). The server prices everything, shows the delivery fee and total before ordering, reserves capacity so the last cake or slot can never be sold twice, and a retried or double-clicked submit never creates two orders. Guests get a private tracking link, signed-in customers see their own orders.
-- **M4** card payments and emails: done. Customers can pay by card (Paymob, Egypt, test mode) or cash. A card order holds its slot while the customer pays, the provider's signed webhook confirms it, unpaid orders expire after 35 minutes and free their capacity, and money that arrives too late is refunded automatically. Confirmation emails go through a retrying outbox (Brevo in production). The owner switches payment methods on and off, edits the wording of every email with a live preview, and sees an email log with retry, all under **Manage shop, Payments and emails**.
-- **M5** staff order queue: done. Staff and the owner open **Orders** to see the day's orders, filter by stage, delivery or pickup and search, then accept or decline (with a reason), move an order through preparing, ready and delivered or collected, mark it late, cancel it, and email the customer. Declining or cancelling a paid card order refunds it and frees the slot in the same step. A printable **Prep sheet** adds up what to bake that day and lists the messages to write on cakes.
-- **M6** change, cancel and account: done. A customer can change an order's date, time, address or notes, or cancel it, until the owner's window closes (and before the bakery starts preparing it). Cancelling a card order refunds it by the owner's policy (full, a percentage, or none), set under **Manage shop, Cancellation and refunds**. The tracking page keeps itself up to date. Signed-in customers get **My account** with their profile, saved addresses (used at checkout) and order history, and their cart is saved on the account, so it is waiting after signing out and back in (or on another device).
-- Next: **M7**, team management, remaining settings, the accessibility audit, demo data and README polish. The visual polish pass comes last. See [DESIGN.md §14](docs/DESIGN.md).
+All milestones are built and tested (see [DESIGN.md §14](docs/DESIGN.md)): M0 scaffolding and sign-in, M1 catalog, M2 schedule and delivery, M3 cart, checkout and cash orders, M4 card payments and emails, M5 staff order queue, M6 change, cancel and account, M7 team, shop details, accessibility audit and demo data. A visual design pass is the remaining step.
 
 ## Run everything with Docker
 
@@ -31,7 +59,7 @@ docker compose up --build -d             # migrates, creates the first owner, se
 | API docs | http://localhost:8000/docs |
 | Postgres | localhost:5433 (user/password/db: `baker`) |
 
-With `SEED_DEMO=true` in `backend/.env` (the example default), about 30 demo products plus default opening hours, two-hour slots and delivery zones are loaded on first start (each part only fills an empty table). Sign in as the owner (`FIRST_OWNER_EMAIL` / `FIRST_OWNER_PASSWORD`) and open **Manage shop** to edit them. Product photos are stored on a Docker volume locally.
+With `SEED_DEMO=true` in `backend/.env` (the example default), about 30 demo products plus default opening hours, two-hour slots and delivery zones are loaded on first start (each part only fills an empty table). Add `DEMO_PASSWORD` to also create the demo customer and staff accounts. Sign in as the owner (`FIRST_OWNER_EMAIL` / `FIRST_OWNER_PASSWORD`) and open **Manage shop** to edit everything. Product photos are stored on a Docker volume locally.
 
 Without a Brevo key (see below) emails, including password-reset links, are written to the backend log instead of being sent: `docker compose logs backend | grep reset-password`.
 
@@ -56,6 +84,27 @@ npm run dev                 # http://localhost:5173
 npm run lint && npm test && npm run build
 ```
 
+CI (`.github/workflows/ci.yml`) runs the same checks on every push: lint, format, migrations (up, down, up, and a check that they match the models), the backend tests against a real Postgres, and the frontend lint, tests and build.
+
+## Configuration
+
+All settings are environment variables. Secrets live only there, never in the repository or the database. `backend/.env.example` documents each one.
+
+| Variable | Needed | What it is |
+|---|---|---|
+| `DATABASE_URL` | yes | Postgres connection (Railway provides it) |
+| `ENV` | production | `production` turns on the safety checks (no practice payments, photo storage required) |
+| `JWT_SECRET` | yes | Signs sign-in tokens and guest tracking links. Changing it signs everyone out and breaks old tracking links |
+| `FRONTEND_URL`, `CORS_ORIGINS` | yes | The Vercel address (links in emails, allowed browser origin) |
+| `FIRST_OWNER_EMAIL`, `FIRST_OWNER_PASSWORD`, `FIRST_OWNER_NAME` | first start | Creates the first owner if none exists |
+| `PUBLIC_API_URL` | card payments | The backend's public address, so Paymob can call back |
+| `PAYMENT_PROVIDER` | no | `paymob`, `fake` (practice page, refused in production) or `none` (cash only) |
+| `PAYMOB_SECRET_KEY`, `PAYMOB_PUBLIC_KEY`, `PAYMOB_HMAC_SECRET`, `PAYMOB_INTEGRATION_ID` | with Paymob | From the Paymob dashboard |
+| `BREVO_API_KEY`, `EMAIL_FROM` | for real emails | Without a key, emails go to the log |
+| `STORAGE_BACKEND`, `R2_*` | production | `r2` plus the five Cloudflare R2 values; `local` for development |
+| `SEED_DEMO`, `DEMO_PASSWORD` | demo only | Load the demo catalog, and create the demo customer and staff accounts |
+| `VITE_API_URL` | frontend | The backend address, set on Vercel |
+
 ## Deploy (demo)
 
 **Railway (backend + database)**
@@ -63,8 +112,9 @@ npm run lint && npm test && npm run build
 2. Add a service from this repo with **Root Directory** `backend` (it picks up `backend/railway.json` and the Dockerfile).
 3. Variables: `DATABASE_URL` (reference the Postgres service's `DATABASE_URL`), `ENV=production`, `JWT_SECRET`, `FRONTEND_URL`, `CORS_ORIGINS` (both the Vercel URL), `FIRST_OWNER_EMAIL`, `FIRST_OWNER_PASSWORD`.
 4. Photo storage (required in production, the app refuses to start without it): `STORAGE_BACKEND=r2`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`. See below.
-5. Optional: `SEED_DEMO=true` loads the demo catalog on the first start when the catalog is empty.
-6. Generate a public domain.
+5. Optional demo data: `SEED_DEMO=true` loads the demo catalog on the first start when the catalog is empty. Add `DEMO_PASSWORD` to also create the demo customer and staff accounts (give reviewers that password; never reuse a real one).
+6. Generate a public domain, then set `PUBLIC_API_URL` to it. Migrations run on every start (`docker-entrypoint.sh`), so deploying a new version updates the database too.
+7. Check it: `https://<your-railway-domain>/healthz` answers `{"status":"ok"}`.
 
 **Paymob (card payments in EGP, test mode)**
 
@@ -111,6 +161,12 @@ Without a key, emails are only written to the server log.
 1. Import the repo with **Root Directory** `frontend` (Vite preset).
 2. Environment variable `VITE_API_URL` = the Railway public URL (no trailing slash).
 3. After the first deploy, put the Vercel URL into Railway's `FRONTEND_URL` and `CORS_ORIGINS`.
+
+## Testing
+
+- Backend: `python -m pytest` (about 280 tests, on a real Postgres). They cover the rules that matter most: nobody can buy the last cake twice, a retried request never creates a second order, a payment callback is verified and handled once, a refund that fails changes nothing, and each role sees only what it should.
+- Frontend: `npm test` (about 240 tests with Testing Library and axe). Components are found by their accessible names, the way a screen reader finds them.
+- Time is frozen in tests, so results do not depend on the day or hour they run.
 
 ## Conventions
 

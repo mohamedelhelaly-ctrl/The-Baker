@@ -4,7 +4,7 @@ import asyncio
 import logging
 
 from app.database import SessionLocal, engine
-from app.services.demo_seed import seed_demo_catalog, seed_demo_schedule
+from app.services.demo_seed import seed_demo_accounts, seed_demo_catalog, seed_demo_schedule
 
 
 async def main() -> None:
@@ -12,8 +12,14 @@ async def main() -> None:
     async with SessionLocal() as db:
         created = await seed_demo_catalog(db)
         scheduled = await seed_demo_schedule(db)
+        accounts = await seed_demo_accounts(db)
     print("demo catalog seeded" if created else "demo catalog: nothing to do")
     print("demo schedule seeded" if scheduled else "demo schedule: nothing to do")
+    print(
+        f"demo accounts created: {', '.join(accounts)}"
+        if accounts
+        else "demo accounts: nothing to do"
+    )
     await engine.dispose()
 
 

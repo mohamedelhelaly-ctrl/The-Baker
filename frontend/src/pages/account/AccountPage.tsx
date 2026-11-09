@@ -40,6 +40,40 @@ export default function AccountPage() {
           {pending ? "Saving…" : "Save details"}
         </Button>
       </form>
+      <ChangePassword />
     </>
+  );
+}
+
+function ChangePassword() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [done, setDone] = useState(false);
+  const { pending, error, summaryRef, onSubmit } = useFormSubmit(async () => {
+    setDone(false);
+    await api.post("/auth/change-password", { current_password: current, new_password: next });
+    setCurrent("");
+    setNext("");
+    setDone(true);
+  });
+  return (
+    <section aria-labelledby="password-h" className="mt-10 max-w-md">
+      <h2 id="password-h" className="mb-3 font-display text-2xl font-bold">
+        Change your password
+      </h2>
+      <form noValidate onSubmit={onSubmit}>
+        {error && (
+          <Alert ref={summaryRef} kind="error" title="We could not change your password">
+            {error.message}
+          </Alert>
+        )}
+        <div aria-live="polite">{done && <Alert kind="success">Your password was changed.</Alert>}</div>
+        <TextField label="Current password" type="password" autoComplete="current-password" required value={current} onChange={(e) => setCurrent(e.target.value)} error={error?.fields.current_password} />
+        <TextField label="New password" type="password" autoComplete="new-password" required hint="At least 10 characters." value={next} onChange={(e) => setNext(e.target.value)} error={error?.fields.new_password} />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving…" : "Change password"}
+        </Button>
+      </form>
+    </section>
   );
 }

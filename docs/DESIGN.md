@@ -458,7 +458,7 @@ A "Display" menu in the header offers **text size** (100 / 125 / 150%), **high c
 
 - **Lint:** `eslint-plugin-jsx-a11y`.
 - **Automated:** `@axe-core/playwright` runs on every key page in CI, and the build fails on any serious or critical violation.
-- **Manual:** keyboard-only and VoiceOver passes through the golden paths (browse → order → track; staff queue; add a product), recorded in `docs/ACCESSIBILITY_AUDIT.md`.
+- **Manual:** keyboard-only and VoiceOver passes through the golden paths (browse → order → track; staff queue; add a product), recorded in `docs/ACCESSIBILITY.md`.
 - **Lighthouse:** an accessibility score of at least 95 on the storefront pages.
 
 ### 10.4 RTL readiness
@@ -617,6 +617,16 @@ Browser ──▶ Vercel (static SPA, CDN)
 
 ---
 
+### M7 implementation notes
+
+- **Team (O3.1).** The owner lists, adds, changes and removes staff and owner accounts (`/admin/team`). The owner chooses a temporary password (at least 10 characters) and hands it over; the person changes it under **My account** (`POST /auth/change-password`, which asks for the current password and refuses an unchanged one). Removing is switching off, not erasing: the account keeps its history, can be switched back on, and its session ends at once because every request checks the account is still active. Safeguards: nobody can change their own role or switch off their own account, and the last active owner cannot be removed or demoted. The owner rows are locked while that is checked, so two owners acting on each other at the same moment cannot leave the shop without an owner. Customers cannot be added to the team this way (an existing customer's email is refused), because roles are never granted without the owner typing a new account.
+- **Shop details (O4.1, O4.4).** Name, phone, WhatsApp, email, address and the pickup place and instructions are the owner's to edit and are public through `/store`. They appear in the footer (contact links), at checkout when pickup is chosen, on the order page, and in order emails (the shop name, and "Collect from: ..." for pickup orders). An empty name falls back to the configured default.
+- **Demo accounts (D2).** With `SEED_DEMO=true` and `DEMO_PASSWORD` set, a demo customer (`customer@demo.thebaker`) and demo staff member (`staff@demo.thebaker`) are created next to the demo catalog; the owner is the `FIRST_OWNER_*` account. They share one password that is set only in the environment, never in the repository, so the public demo cannot be signed into with a guessable one. Existing accounts are never touched.
+- **Accessibility audit.** See [ACCESSIBILITY.md](ACCESSIBILITY.md): what is enforced in CI, how each WCAG principle is met, the known limitations, and a manual checklist (screen reader, keyboard, zoom, colour) that still needs a person.
+- **Operations.** The README is the deploy guide: every environment variable in one table, the Railway, Vercel, R2, Paymob and Brevo setup, demo accounts, and how to run the tests.
+
+---
+
 ## 14. Delivery plan
 
 Each milestone is one or more pull requests with tests. The demo is updated at the end of each milestone.
@@ -630,7 +640,7 @@ Each milestone is one or more pull requests with tests. The demo is updated at t
 | M4 ✅ | Paymob (Egypt) test payments, webhooks, outbox emails, templates | C2.4, C3.1, O4.2, O4.3 |
 | M5 ✅ | Staff queue, lifecycle, delay/cancel, contact, prep sheet | S1 |
 | M6 ✅ | Tracking, modify/cancel window, refunds, account pages | C3, C4.2, C4.3, O2 |
-| M7 | Team management, settings, accessibility audit, demo seed, deploy, README polish | O3, O4, D1, D2 |
+| M7 ✅ | Team management, settings, accessibility audit, demo seed, deploy, README polish | O3, O4, D1, D2 |
 
 ---
 

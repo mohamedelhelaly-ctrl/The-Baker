@@ -19,12 +19,14 @@ from app.config import get_settings
 from app.core.clock import STORE_TZ
 from app.core.money import format_money
 from app.core.security import tracking_token
+from app.crud.store_settings import store_settings_crud
 from app.models.notification import Notification, NotificationStatus, NotificationTemplate
 from app.models.order import Order, PaymentMethod, PaymentStatus
 from app.services.email import EmailSender
 
 logger = logging.getLogger("baker.notifications")
 
+PICKUP_ADDRESS = "Collect from the bakery"  # replaced with the owner's pickup details when queuing
 MAX_ATTEMPTS = 5
 BACKOFF_SECONDS = 30  # doubles each attempt: 30s, 60s, 2m, 4m
 
@@ -224,7 +226,7 @@ def order_context(order: Order, extra: dict[str, str] | None = None) -> dict[str
         if order.zone_name:
             address += f", {order.zone_name}"
     else:
-        address = "Collect from the bakery"
+        address = PICKUP_ADDRESS
     if order.payment_method == PaymentMethod.cod:
         payment = "Cash on delivery or pickup"
     elif order.payment_status == PaymentStatus.paid:
@@ -256,6 +258,21 @@ async def _load_template(db: AsyncSession, key: str) -> tuple[str, str, bool]:
     return (row.subject, row.body, row.is_active) if row else (default.subject, default.body, True)
 
 
+async def _with_owner_details(db: AsyncSession, context: dict[str, str]) -> dict[str, str]:
+    """The business name and pickup details are the owner's to edit, so they are read when queuing."""
+    row = await store_settings_crud.get(db)
+    context = dict(context)
+    if row.business_name and "store_name" in context:
+        context["store_name"] = row.business_name
+    if context.get("address") == PICKUP_ADDRESS and row.pickup_location:
+        context["address"] = pickup_text(row.pickup_location, row.pickup_instructions)
+    return context
+
+
+def pickup_text(location: str, instructions: str | None) -> str:
+    return f"Collect from: {location}" + (f". {instructions}" if instructions else "")
+
+
 async def enqueue(
     db: AsyncSession,
     *,
@@ -269,6 +286,7 @@ async def enqueue(
     subject_t, body_t, active = await _load_template(db, key)
     if not active:
         return None
+    context = await _with_owner_details(db, context)
     try:
         subject, body = render(subject_t, context), render(body_t, context)
     except TemplateRenderError:

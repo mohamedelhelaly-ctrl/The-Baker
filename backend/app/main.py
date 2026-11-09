@@ -20,6 +20,7 @@ from app.routers import (
     admin_catalog,
     admin_schedule,
     admin_settings,
+    admin_team,
     auth,
     availability,
     catalog,
@@ -83,6 +84,10 @@ app.include_router(  # staff may read, owner may write; writes add their own gua
     admin_schedule.router,
     prefix=API_PREFIX,
     dependencies=[Depends(require_module("schedule_admin"))],
+)
+
+app.include_router(  # owner only: staff and owner accounts
+    admin_team.router, prefix=API_PREFIX, dependencies=[Depends(require_module("team"))]
 )
 
 app.include_router(  # owner only: payment switches, email wording, email log

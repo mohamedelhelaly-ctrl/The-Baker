@@ -4,7 +4,7 @@ import { api } from "./api";
 import { formatMoney } from "./money";
 import type { StoreInfo } from "./types";
 
-const FALLBACK: StoreInfo = { name: "The Baker", currency: "EGP", currency_exponent: 2, opening_hours: [], payment_methods: ["cod"], cancellation_window_hours: 24, policy_text: "" };
+const FALLBACK: StoreInfo = { name: "The Baker", currency: "EGP", currency_exponent: 2, opening_hours: [], payment_methods: ["cod"], cancellation_window_hours: 24, policy_text: "", phone: null, whatsapp: null, email: null, address: null, pickup_location: null, pickup_instructions: null };
 const StoreContext = createContext<StoreInfo>(FALLBACK);
 
 export function StoreProvider({ children }: { children: ReactNode }) {

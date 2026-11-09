@@ -1,7 +1,7 @@
 """Owner-only: payment switches, email wording, and the email log (module: settings)."""
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +29,62 @@ from app.services.policies import policy_text
 
 WRITE = [Depends(require_module("settings", write=True))]
 router = APIRouter(prefix="/admin", tags=["admin: settings"])
+
+
+# ------------------------------------------------------------------- shop details
+PHONE_PATTERN = r"^[0-9+()\-\s]{7,30}$"
+
+
+class ShopDetails(BaseModel):
+    business_name: str | None = Field(default=None, max_length=80)
+    phone: str | None = Field(default=None, pattern=PHONE_PATTERN)
+    whatsapp: str | None = Field(default=None, pattern=PHONE_PATTERN)
+    email: EmailStr | None = None
+    address: str | None = Field(default=None, max_length=300)
+    pickup_location: str | None = Field(default=None, max_length=200)
+    pickup_instructions: str | None = Field(default=None, max_length=500)
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _blank_is_none(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+            return v or None
+        return v
+
+
+def _details_read(row) -> ShopDetails:
+    return ShopDetails(
+        business_name=row.business_name,
+        phone=row.phone,
+        whatsapp=row.whatsapp,
+        email=row.contact_email,
+        address=row.address,
+        pickup_location=row.pickup_location,
+        pickup_instructions=row.pickup_instructions,
+    )
+
+
+@router.get("/settings", response_model=ShopDetails)
+async def get_shop_details(db: AsyncSession = Depends(get_db)):
+    return _details_read(await store_settings_crud.get(db))
+
+
+@router.put("/settings", response_model=ShopDetails, dependencies=WRITE)
+async def put_shop_details(body: ShopDetails, db: AsyncSession = Depends(get_db)):
+    row = await store_settings_crud.get(db)
+    row = await store_settings_crud.update(
+        db,
+        row,
+        business_name=body.business_name,
+        phone=body.phone,
+        whatsapp=body.whatsapp,
+        contact_email=str(body.email) if body.email else None,
+        address=body.address,
+        pickup_location=body.pickup_location,
+        pickup_instructions=body.pickup_instructions,
+    )
+    return _details_read(row)
 
 
 # ------------------------------------------------------------------------ policies

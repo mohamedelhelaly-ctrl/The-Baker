@@ -28,6 +28,8 @@ const FakePayPage = lazy(() => import("./pages/payments/FakePayPage"));
 const TrackPage = lazy(() => import("./pages/orders/TrackPage"));
 const ChangeOrderPage = lazy(() => import("./pages/orders/ChangeOrderPage"));
 const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
+const AdminTeamPage = lazy(() => import("./pages/admin/AdminTeamPage"));
+const AdminShopPage = lazy(() => import("./pages/admin/AdminShopPage"));
 const AdminPoliciesPage = lazy(() => import("./pages/admin/AdminPoliciesPage"));
 const DeliveryPage = lazy(() => import("./pages/delivery/DeliveryPage"));
 const AdminTaxonomyPage = lazy(() => import("./pages/admin/AdminTaxonomyPage"));
@@ -84,9 +86,13 @@ export default function App() {
                 <Route path="schedule" element={<AdminSchedulePage />} />
                 <Route path="delivery-zones" element={<AdminDeliveryZonesPage />} />
               </Route>
+              <Route element={<RequireModule module="team" />}>
+                <Route path="team" element={<AdminTeamPage />} />
+              </Route>
               <Route element={<RequireModule module="settings" />}>
                 <Route path="payments" element={<AdminPaymentsPage />} />
                 <Route path="policies" element={<AdminPoliciesPage />} />
+                <Route path="shop" element={<AdminShopPage />} />
               </Route>
             </Route>
           </Route>

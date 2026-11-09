@@ -169,6 +169,12 @@ async def test_store_info_and_taxonomy_lists(client, owner):
         "opening_hours": [],
         "payment_methods": ["cod"],
         "cancellation_window_hours": 24,
+        "phone": None,
+        "whatsapp": None,
+        "email": None,
+        "address": None,
+        "pickup_location": None,
+        "pickup_instructions": None,
     }
     assert [c["slug"] for c in (await client.get("/api/v1/categories")).json()] == [
         "breads",

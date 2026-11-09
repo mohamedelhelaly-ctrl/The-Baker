@@ -22,6 +22,7 @@ from app.database import get_db
 from app.deps import get_current_user
 from app.models.user import User
 from app.schemas.auth import (
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
     MessageResponse,
@@ -81,6 +82,32 @@ async def me(user: User = Depends(get_current_user)):
         role=user.role,
         permissions=allowed_modules(user.role),
     )
+
+
+@router.post("/change-password", response_model=MessageResponse)
+@limiter.limit("10/minute")
+async def change_password(
+    request: Request,
+    body: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if not await verify_password(body.current_password, user.password_hash):
+        raise ApiError(
+            422,
+            "wrong_password",
+            "Your current password is not correct.",
+            {"current_password": "Your current password is not correct."},
+        )
+    if body.current_password == body.new_password:
+        raise ApiError(
+            422,
+            "same_password",
+            "Choose a password you have not used just now.",
+            {"new_password": "Choose a different password."},
+        )
+    await user_crud.set_password(db, user, await hash_password(body.new_password))
+    return MessageResponse(message="Your password was changed.")
 
 
 @router.post("/forgot-password", response_model=MessageResponse, status_code=202)

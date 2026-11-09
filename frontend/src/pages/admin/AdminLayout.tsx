@@ -12,8 +12,9 @@ export default function AdminLayout() {
   const catalog = can("catalog_admin");
   const schedule = can("schedule_admin");
   const settings = can("settings");
+  const team = can("team");
 
-  if (!catalog && !schedule && !settings) {
+  if (!catalog && !schedule && !settings && !team) {
     return <h1 className="font-display text-3xl">{s.errors.forbiddenTitle}</h1>;
   }
   if (pathname.replace(/\/$/, "") === "/admin") {
@@ -53,7 +54,15 @@ export default function AdminLayout() {
             <NavLink to="/admin/policies" className={link}>
               Cancellation and refunds
             </NavLink>
+            <NavLink to="/admin/shop" className={link}>
+              Shop details
+            </NavLink>
           </>
+        )}
+        {team && (
+          <NavLink to="/admin/team" className={link}>
+            Team
+          </NavLink>
         )}
       </nav>
       <Outlet />
