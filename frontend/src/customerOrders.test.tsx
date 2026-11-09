@@ -135,7 +135,9 @@ describe("change order page", () => {
     const calls = openChange(changeable, { "PATCH /orders/BK-ABC234": { body: changeable } });
     renderApp(<App />, "/track/BK-ABC234/change?t=tok");
     const user = userEvent.setup();
-    await user.selectOptions(await screen.findByLabelText(/Delivery date/), "2030-12-05");
+    const dateField = await screen.findByLabelText(/Delivery date/);
+    await screen.findByRole("option", { name: /5 December/ }); // the list fills in after the field appears
+    await user.selectOptions(dateField, "2030-12-05");
     await user.click(await screen.findByRole("radio", { name: /10:00 AM to 12:00 PM/ }));
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(sent(calls, "PATCH", "/orders/BK-ABC234")).toHaveLength(1));
@@ -146,7 +148,9 @@ describe("change order page", () => {
     const calls = openChange();
     renderApp(<App />, "/track/BK-ABC234/change?t=tok");
     const user = userEvent.setup();
-    await user.selectOptions(await screen.findByLabelText(/Delivery date/), "2030-12-05");
+    const dateField = await screen.findByLabelText(/Delivery date/);
+    await screen.findByRole("option", { name: /5 December/ }); // the list fills in after the field appears
+    await user.selectOptions(dateField, "2030-12-05");
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Choose a time for the new date.");
     expect(sent(calls, "PATCH", "/orders/BK-ABC234")).toHaveLength(0);
@@ -156,7 +160,9 @@ describe("change order page", () => {
     openChange(changeable, { "PATCH /orders/BK-ABC234": { status: 409, body: { error: { code: "cannot_change_to_that", message: "That time slot is fully booked.", fields: { slot: "That time slot is fully booked." } } } } });
     renderApp(<App />, "/track/BK-ABC234/change?t=tok");
     const user = userEvent.setup();
-    await user.selectOptions(await screen.findByLabelText(/Delivery date/), "2030-12-05");
+    const dateField = await screen.findByLabelText(/Delivery date/);
+    await screen.findByRole("option", { name: /5 December/ }); // the list fills in after the field appears
+    await user.selectOptions(dateField, "2030-12-05");
     await user.click(await screen.findByRole("radio", { name: /10:00 AM to 12:00 PM/ }));
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     expect(await screen.findByText("We could not save your changes")).toBeInTheDocument();

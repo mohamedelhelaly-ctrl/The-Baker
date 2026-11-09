@@ -1,5 +1,7 @@
 import { MAX_QTY, lineKey } from "./cartKeys";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { api } from "./api";
+import { useAuth } from "./auth";
 
 /** A cart line holds only what the customer chose. Names and prices always come from the server quote. */
 export interface CartLine {
@@ -19,6 +21,44 @@ interface CartContextValue {
 }
 
 const KEY = "baker.cart";
+const OWNER_KEY = "baker.cart.owner"; // which account the cart in this browser was last synced with
+const SAVE_DELAY_MS = 400;
+
+interface ServerLine {
+  variant_id: number;
+  quantity: number;
+  inscription: string | null;
+}
+const fromServer = (l: ServerLine): CartLine => ({ variantId: l.variant_id, quantity: clamp(l.quantity), inscription: l.inscription ?? "" });
+const toServer = (l: CartLine): ServerLine => ({ variant_id: l.variantId, quantity: l.quantity, inscription: l.inscription || null });
+
+/** The account's saved cart plus anything a guest added before signing in (same item: quantities add up). */
+function merge(saved: CartLine[], guest: CartLine[]): CartLine[] {
+  const result = saved.map((l) => ({ ...l }));
+  for (const g of guest) {
+    const same = result.find((l) => lineKey(l) === lineKey(g));
+    if (same) same.quantity = clamp(same.quantity + g.quantity);
+    else result.push({ ...g });
+  }
+  return result;
+}
+
+function readOwner(): number | null {
+  try {
+    const n = Number(localStorage.getItem(OWNER_KEY));
+    return Number.isInteger(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
+function writeOwner(id: number | null) {
+  try {
+    if (id === null) localStorage.removeItem(OWNER_KEY);
+    else localStorage.setItem(OWNER_KEY, String(id));
+  } catch {
+    /* only a convenience */
+  }
+}
 const clamp = (n: number) => Math.min(MAX_QTY, Math.max(1, Math.floor(Number.isFinite(n) ? n : 1)));
 
 function load(): CartLine[] {
@@ -37,6 +77,43 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>(load);
+  const userId = useAuth().user?.id ?? null;
+  // The account the cart is currently in step with. Nothing is saved until the account's own cart has
+  // been fetched, so signing in can never overwrite it with an empty one.
+  const [syncedFor, setSyncedFor] = useState<number | null>(null);
+  // Whoever signs in (or out), the previous sync is over: adjusting state while rendering is React's way to reset it.
+  const [seenUser, setSeenUser] = useState<number | null>(userId);
+  if (seenUser !== userId) {
+    setSeenUser(userId);
+    setSyncedFor(null);
+  }
+
+  // Signing in: bring back the account's cart. Items a guest added first are kept (merged in), but a cart
+  // left in this browser by a different account (for example after a session expired) is not inherited.
+  useEffect(() => {
+    if (userId === null) return;
+    const controller = new AbortController();
+    api
+      .get<{ lines: ServerLine[] }>("/me/cart", { signal: controller.signal })
+      .then((res) => {
+        const saved = res.lines.map(fromServer);
+        const owner = readOwner();
+        setLines((local) => (owner === userId ? saved : owner === null ? merge(saved, local) : saved));
+        writeOwner(userId);
+        setSyncedFor(userId);
+      })
+      .catch(() => undefined); // offline: keep the local cart and try again at the next sign-in
+    return () => controller.abort();
+  }, [userId]);
+
+  // While signed in, every change is saved to the account (briefly delayed, so typing does not flood it).
+  useEffect(() => {
+    if (userId === null || syncedFor !== userId) return;
+    const id = setTimeout(() => {
+      api.put("/me/cart", { lines: lines.map(toServer) }).catch(() => undefined);
+    }, SAVE_DELAY_MS);
+    return () => clearTimeout(id);
+  }, [lines, userId, syncedFor]);
 
   useEffect(() => {
     try {
@@ -76,7 +153,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [],
   );
   const remove = useCallback((key: string) => setLines((prev) => prev.filter((l) => lineKey(l) !== key)), []);
-  const clear = useCallback(() => setLines([]), []);
+  const clear = useCallback(() => {
+    setLines([]);
+    writeOwner(null);
+  }, []);
 
   const value = useMemo(
     () => ({ lines, count: lines.reduce((n, l) => n + l.quantity, 0), add, setQuantity, setInscription, remove, clear }),

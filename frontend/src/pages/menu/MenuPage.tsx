@@ -65,7 +65,6 @@ export default function MenuPage() {
           type="search"
           name="q"
           autoComplete="off"
-          hint={s.menu.searchHint}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
         />

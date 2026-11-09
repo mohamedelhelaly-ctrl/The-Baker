@@ -175,3 +175,64 @@ async def test_order_history_is_paged(client, owner, make_headers):
         await client.get(ME + "/orders", params={"page_size": 2, "page": 2}, headers=mine)
     ).json()
     assert len(second["items"]) == 1
+
+
+# ================================================================ saved cart
+async def test_a_cart_is_saved_on_the_account_and_comes_back(client, make_headers):
+    h = await make_headers("customer")
+    assert (await client.get(ME + "/cart", headers=h)).json() == {"lines": []}
+    lines = [
+        {"variant_id": 10, "quantity": 2, "inscription": "Happy Birthday"},
+        {"variant_id": 11, "quantity": 1, "inscription": None},
+    ]
+    saved = await client.put(ME + "/cart", json={"lines": lines}, headers=h)
+    assert saved.status_code == 200 and saved.json()["lines"] == lines
+    assert (await client.get(ME + "/cart", headers=h)).json()["lines"] == lines
+    replaced = await client.put(ME + "/cart", json={"lines": lines[:1]}, headers=h)
+    assert replaced.status_code == 200
+    assert (await client.get(ME + "/cart", headers=h)).json()["lines"] == lines[:1]
+    assert (await client.put(ME + "/cart", json={"lines": []}, headers=h)).status_code == 200
+    assert (await client.get(ME + "/cart", headers=h)).json() == {"lines": []}
+
+
+async def test_carts_are_private_to_each_account(client, make_headers):
+    mine, other = await make_headers("customer"), await make_headers("customer")
+    await client.put(
+        ME + "/cart", json={"lines": [{"variant_id": 10, "quantity": 3}]}, headers=mine
+    )
+    assert (await client.get(ME + "/cart", headers=other)).json() == {"lines": []}
+    assert (await client.get(ME + "/cart")).status_code == 401
+    assert (await client.put(ME + "/cart", json={"lines": []})).status_code == 401
+
+
+async def test_nonsense_carts_are_refused(client, make_headers):
+    h = await make_headers("customer")
+    for lines in (
+        [{"variant_id": 10, "quantity": 0}],
+        [{"variant_id": 10, "quantity": 101}],
+        [{"variant_id": 0, "quantity": 1}],
+        [{"variant_id": 10, "quantity": 1, "inscription": "x" * 81}],
+        [{"variant_id": n, "quantity": 1} for n in range(1, 32)],  # more than 30 lines
+    ):
+        r = await client.put(ME + "/cart", json={"lines": lines}, headers=h)
+        assert r.status_code == 422, lines
+
+
+async def test_two_tabs_saving_at_once_keep_one_cart_row(client, make_headers):
+    import asyncio
+
+    from sqlalchemy import func, select
+
+    from app.database import SessionLocal
+    from app.models.cart import SavedCart
+
+    h = await make_headers("customer")
+    results = await asyncio.gather(
+        *[
+            client.put(ME + "/cart", json={"lines": [{"variant_id": 10, "quantity": n}]}, headers=h)
+            for n in range(1, 6)
+        ]
+    )
+    assert all(r.status_code == 200 for r in results)
+    async with SessionLocal() as db:
+        assert (await db.execute(select(func.count()).select_from(SavedCart))).scalar_one() == 1

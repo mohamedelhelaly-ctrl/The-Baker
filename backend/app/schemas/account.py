@@ -3,6 +3,7 @@ import datetime as dt
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.order import FulfilmentType, OrderStatus, PaymentMethod, PaymentStatus
+from app.schemas.checkout import MAX_LINES, CartLine
 
 
 def _strip_required(v: str) -> str:
@@ -72,3 +73,9 @@ class OrderSummary(BaseModel):
     payment_status: PaymentStatus
     placed_at: dt.datetime
     summary: str = ""  # "2 × Triple Chocolate Cake, 1 × Sourdough"
+
+
+class CartBody(BaseModel):
+    """The cart as saved on the account."""
+
+    lines: list[CartLine] = Field(max_length=MAX_LINES)

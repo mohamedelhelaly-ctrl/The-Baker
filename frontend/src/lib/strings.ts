@@ -44,7 +44,6 @@ export const s = {
   menu: {
     title: "Our menu",
     search: "Search the menu",
-    searchHint: "Try “chocolate”, “croissant” or “kahk”.",
     category: "Category",
     occasion: "Occasion",
     sort: "Sort by",

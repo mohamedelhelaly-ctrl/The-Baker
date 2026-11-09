@@ -1,5 +1,6 @@
 # Import every model so SQLAlchemy mappers and Alembic autogenerate see them.
 from app.models.address import SavedAddress  # noqa: F401
+from app.models.cart import SavedCart  # noqa: F401
 from app.models.category import Category  # noqa: F401
 from app.models.notification import (  # noqa: F401
     Notification,

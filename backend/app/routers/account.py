@@ -1,7 +1,8 @@
 """The signed-in customer's own profile, saved addresses and order history (module: account)."""
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ApiError
@@ -10,11 +11,13 @@ from app.crud.order import order_crud
 from app.database import get_db
 from app.deps import require_module
 from app.models.address import SavedAddress
+from app.models.cart import SavedCart
 from app.models.schedule import DeliveryZone
 from app.models.user import User
 from app.schemas.account import (
     AddressRead,
     AddressWrite,
+    CartBody,
     OrderSummary,
     ProfileUpdate,
 )
@@ -155,3 +158,27 @@ async def my_orders(
         row.summary = ", ".join(f"{i.quantity} × {i.product_name}" for i in order.items)
         rows.append(row)
     return Page[OrderSummary].build(rows, total, page, page_size)
+
+
+# ------------------------------------------------------------------------- cart
+@router.get("/cart", response_model=CartBody)
+async def get_cart(db: AsyncSession = Depends(get_db), user: User = account):
+    row = (
+        await db.execute(select(SavedCart).where(SavedCart.user_id == user.id))
+    ).scalar_one_or_none()
+    return CartBody(lines=row.lines if row else [])
+
+
+@router.put("/cart", response_model=CartBody)
+async def put_cart(body: CartBody, db: AsyncSession = Depends(get_db), user: User = account):
+    """Replace the saved cart. One row per customer, so two tabs saving at once cannot create two."""
+    lines = [line.model_dump() for line in body.lines]
+    await db.execute(
+        pg_insert(SavedCart)
+        .values(user_id=user.id, lines=lines)
+        .on_conflict_do_update(
+            index_elements=["user_id"], set_={"lines": lines, "updated_at": func.now()}
+        )
+    )
+    await db.commit()
+    return CartBody(lines=lines)
