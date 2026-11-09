@@ -1,4 +1,4 @@
-import { Link, Outlet } from "react-router";
+import { Link, Outlet, useNavigate } from "react-router";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
 import { WEEKDAYS, formatTime, hhmm } from "../../lib/dates";
@@ -9,7 +9,16 @@ import { DisplayMenu } from "./DisplayMenu";
 export function AppShell() {
   const { user, logout, can } = useAuth();
   const { opening_hours } = useStore();
-  const { count } = useCart();
+  const { count, clear: clearCart } = useCart();
+  const navigate = useNavigate();
+
+  /** Signing out ends the session, empties the cart (it belongs to whoever is using this browser, and the
+   *  next person to sign in must not inherit it) and goes straight to the sign-in page. */
+  function signOut() {
+    logout();
+    clearCart();
+    navigate("/login", { replace: true });
+  }
   const link = "inline-flex min-h-11 items-center rounded-md px-3 font-semibold underline-offset-4 hover:underline";
 
   return (
@@ -44,7 +53,7 @@ export function AppShell() {
                 <Link to="/account" className={link}>
                   {s.nav.account}
                 </Link>
-                <button type="button" onClick={logout} className={`${link} cursor-pointer`}>
+                <button type="button" onClick={signOut} className={`${link} cursor-pointer`}>
                   {s.nav.signOut}
                 </button>
               </>
