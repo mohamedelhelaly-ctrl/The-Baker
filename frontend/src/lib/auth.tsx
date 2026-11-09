@@ -16,6 +16,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
   logout: () => void;
+  updateUser: (user: Me) => void; // after the profile is edited
   can: (module: string, action?: "read" | "write") => boolean;
 }
 
@@ -74,8 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout, can }),
-    [user, loading, login, register, logout, can],
+    () => ({ user, loading, login, register, logout, updateUser: setUser, can }),
+    [user, loading, logout, login, register, can],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

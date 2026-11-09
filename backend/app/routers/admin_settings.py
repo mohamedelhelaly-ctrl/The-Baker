@@ -1,7 +1,7 @@
 """Owner-only: payment switches, email wording, and the email log (module: settings)."""
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +13,7 @@ from app.database import get_db
 from app.deps import require_module
 from app.models.notification import Notification, NotificationStatus, NotificationTemplate
 from app.models.order import Order
+from app.models.store_settings import RefundPolicy
 from app.models.user import User
 from app.schemas.common import Page
 from app.services.email import email_provider_name, get_email_sender
@@ -24,9 +25,62 @@ from app.services.notifications import (
     validate_template,
 )
 from app.services.payment_options import available_methods
+from app.services.policies import policy_text
 
 WRITE = [Depends(require_module("settings", write=True))]
 router = APIRouter(prefix="/admin", tags=["admin: settings"])
+
+
+# ------------------------------------------------------------------------ policies
+class PolicyRead(BaseModel):
+    cancellation_window_hours: int
+    refund_policy: RefundPolicy
+    refund_percentage: int
+    policy_note: str | None
+    preview: str  # exactly what customers read
+
+
+class PolicyWrite(BaseModel):
+    cancellation_window_hours: int = Field(ge=0, le=720)
+    refund_policy: RefundPolicy
+    refund_percentage: int = Field(default=100, ge=0, le=100)
+    policy_note: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def _percentage_makes_sense(self):
+        if self.refund_policy == RefundPolicy.percentage and not 1 <= self.refund_percentage <= 99:
+            raise ValueError("Enter a percentage between 1 and 99, or choose full or no refund.")
+        return self
+
+
+def _policy_read(row) -> PolicyRead:
+    return PolicyRead(
+        cancellation_window_hours=row.cancellation_window_hours,
+        refund_policy=row.refund_policy,
+        refund_percentage=row.refund_percentage,
+        policy_note=row.policy_note,
+        preview=policy_text(row),
+    )
+
+
+@router.get("/policies", response_model=PolicyRead)
+async def get_policies(db: AsyncSession = Depends(get_db)):
+    return _policy_read(await store_settings_crud.get(db))
+
+
+@router.put("/policies", response_model=PolicyRead, dependencies=WRITE)
+async def put_policies(body: PolicyWrite, db: AsyncSession = Depends(get_db)):
+    row = await store_settings_crud.get(db)
+    note = (body.policy_note or "").strip() or None
+    row = await store_settings_crud.update(
+        db,
+        row,
+        cancellation_window_hours=body.cancellation_window_hours,
+        refund_policy=body.refund_policy,
+        refund_percentage=body.refund_percentage,
+        policy_note=note,
+    )
+    return _policy_read(row)
 
 
 # ------------------------------------------------------------------------ payments

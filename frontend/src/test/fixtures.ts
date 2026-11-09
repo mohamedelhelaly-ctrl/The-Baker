@@ -149,3 +149,18 @@ export const prepSheet = {
   lines: [{ product_name: "Triple Chocolate Cake", variant_name: "6-inch", quantity: 3, orders: 2 }, { product_name: "Triple Chocolate Cake", variant_name: "8-inch", quantity: 1, orders: 1 }],
   messages: [{ order_code: "BK-ABC234", slot_starts_at: "2030-12-04T08:00:00Z", product_name: "Triple Chocolate Cake", variant_name: "6-inch", quantity: 1, text: "Happy Birthday Sara" }],
 };
+
+// ---- M6: change, cancel and account ----
+export const POLICY = "You can cancel or change an order until 24 hours before its time slot, as long as we have not started preparing it. A cancelled order paid by card is refunded in full.";
+export const changeable = {
+  ...placedOrder, time_slot_id: 1, zone_id: 1,
+  can_change: true, can_modify_until: "2030-12-03T08:00:00Z", cancel_refund: null,
+};
+export const savedAddress = (id: number, label: string, extra = {}) => ({
+  id, label, zone_id: 1, zone_name: "Maadi", street: "12 Road 9", building: "5", floor: "3", apartment: null, landmark: "Next to the mosque", is_default: false, ...extra,
+});
+export const orderRow = (code: string, extra = {}) => ({
+  code, status: "received", fulfilment_type: "delivery", fulfilment_date: "2030-12-04",
+  slot_starts_at: "2030-12-04T08:00:00Z", slot_ends_at: "2030-12-04T10:00:00Z", total: 134000, currency: "EGP",
+  payment_method: "cod", payment_status: "unpaid", placed_at: "2030-12-01T10:30:00Z", summary: "2 × Triple Chocolate Cake", ...extra,
+});

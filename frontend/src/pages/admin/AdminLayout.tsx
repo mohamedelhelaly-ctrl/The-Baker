@@ -46,9 +46,14 @@ export default function AdminLayout() {
           </>
         )}
         {settings && (
-          <NavLink to="/admin/payments" className={link}>
-            Payments and emails
-          </NavLink>
+          <>
+            <NavLink to="/admin/payments" className={link}>
+              Payments and emails
+            </NavLink>
+            <NavLink to="/admin/policies" className={link}>
+              Cancellation and refunds
+            </NavLink>
+          </>
         )}
       </nav>
       <Outlet />

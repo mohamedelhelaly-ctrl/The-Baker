@@ -142,6 +142,8 @@ class OrderRead(BaseModel):
     fulfilment_date: dt.date
     slot_starts_at: dt.datetime
     slot_ends_at: dt.datetime
+    time_slot_id: int | None
+    zone_id: int | None
     zone_name: str | None
     delivery_address: dict | None
     contact_name: str
@@ -159,6 +161,12 @@ class OrderRead(BaseModel):
     placed_at: dt.datetime
     items: list[OrderItemRead]
     events: list[StatusEventRead]
+    # Filled in for the customer's own views (see services/customer_orders.py).
+    can_change: bool = False
+    can_modify_until: dt.datetime | None = None
+    cancel_refund: int | None = (
+        None  # what they would get back by cancelling now (None: nothing paid)
+    )
 
 
 class OrderCreated(OrderRead):
@@ -168,3 +176,17 @@ class OrderCreated(OrderRead):
 
 class PaymentLink(BaseModel):
     payment_url: str
+
+
+class OrderUpdate(BaseModel):
+    """What a customer may change about an order (the items stay as ordered)."""
+
+    zone_id: int | None = None
+    address: Address | None = None
+    date: dt.date | None = None
+    slot_id: int | None = None
+    customer_notes: str | None = Field(default=None, max_length=500)
+
+
+class CustomerCancel(BaseModel):
+    reason: str | None = Field(default=None, max_length=200)

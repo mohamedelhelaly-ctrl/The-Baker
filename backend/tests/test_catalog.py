@@ -160,12 +160,15 @@ async def test_lists_use_a_constant_number_of_queries(client, owner):
 
 async def test_store_info_and_taxonomy_lists(client, owner):
     await seed(client, owner)
-    assert (await client.get("/api/v1/store")).json() == {
+    info = (await client.get("/api/v1/store")).json()
+    assert info.pop("policy_text").startswith("You can cancel or change an order until 24 hours")
+    assert info == {
         "name": "The Baker",
         "currency": "EGP",
         "currency_exponent": 2,
         "opening_hours": [],
         "payment_methods": ["cod"],
+        "cancellation_window_hours": 24,
     }
     assert [c["slug"] for c in (await client.get("/api/v1/categories")).json()] == [
         "breads",

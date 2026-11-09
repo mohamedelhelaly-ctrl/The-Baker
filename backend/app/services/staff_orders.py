@@ -47,7 +47,9 @@ async def _locked(db: AsyncSession, order_id: int) -> Order:
     return order
 
 
-async def _refund_card_payment(db: AsyncSession, order: Order) -> None:
+async def refund_card_payment(db: AsyncSession, order: Order, amount: int | None = None) -> None:
+    """Refund a paid card order through the provider (all of it, or `amount`). If the provider
+    cannot do it, roll back and tell the caller, so an order is never closed while the money is kept."""
     if order.payment_method != PaymentMethod.card or order.payment_status != PaymentStatus.paid:
         return
     paid = (
@@ -65,8 +67,18 @@ async def _refund_card_payment(db: AsyncSession, order: Order) -> None:
     try:
         if provider is None:
             raise PaymentProviderError("No payment provider is configured")
+        remaining = amount
         for payment in paid:
-            await refund_payment(db, provider, order, payment)
+            part = (
+                None
+                if remaining is None
+                else min(remaining, payment.amount - payment.refunded_amount)
+            )
+            if part is not None and part <= 0:
+                break
+            await refund_payment(db, provider, order, payment, part)
+            if remaining is not None:
+                remaining -= part
     except PaymentProviderError as exc:
         logger.exception("Refund failed for order %s", order.code)
         await db.rollback()
@@ -80,7 +92,7 @@ async def _refund_card_payment(db: AsyncSession, order: Order) -> None:
 
 async def _close(db: AsyncSession, order: Order, to: OrderStatus, reason: str, actor: User) -> None:
     """Reject or cancel: refund, free the slot, record the reason, tell the customer."""
-    await _refund_card_payment(db, order)
+    await refund_card_payment(db, order)
     change_status(order, to, actor_id=actor.id, reason=reason)
     if to == OrderStatus.rejected:
         order.rejection_reason = reason

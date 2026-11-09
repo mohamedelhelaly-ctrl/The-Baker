@@ -13,7 +13,7 @@ import { useCart } from "../../lib/cart";
 import { formatDate, formatTime, hhmm } from "../../lib/dates";
 import { redirectTo } from "../../lib/navigation";
 import { useMoney, useStore } from "../../lib/store";
-import type { OrderCreated, SlotsResponse } from "../../lib/types";
+import type { OrderCreated, SavedAddress, SlotsResponse } from "../../lib/types";
 
 const STEPS = ["Delivery or pickup", "Date and time", "Your details", "Payment", "Review"] as const;
 const PHONE = /^[0-9+()\-\s]{7,20}$/;
@@ -29,7 +29,7 @@ export default function CheckoutPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const money = useMoney();
-  const { payment_methods: methods } = useStore();
+  const { payment_methods: methods, policy_text } = useStore();
   const [step, setStep] = useState(0);
   const [f, setF] = useState<FormState>({
     fulfilment: "delivery", zoneId: "", street: "", building: "", floor: "", apartment: "", landmark: "",
@@ -61,6 +61,20 @@ export default function CheckoutPage() {
   if (user && !prefilled) {
     setPrefilled(true);
     setF((prev) => ({ ...prev, name: prev.name || user.full_name, email: prev.email || user.email, phone: prev.phone || (user.phone ?? "") }));
+  }
+
+  // Saved addresses of a signed-in customer: the default one is filled in for them, and any can be picked.
+  const saved = useApi<SavedAddress[]>(user ? "/me/addresses" : null);
+  const applySavedAddress = (a: SavedAddress) => {
+    setErrors({});
+    setSubmitError(null);
+    setF((prev) => ({ ...prev, zoneId: String(a.zone_id), street: a.street, building: a.building, floor: a.floor ?? "", apartment: a.apartment ?? "", landmark: a.landmark ?? "" }));
+  };
+  const [defaultApplied, setDefaultApplied] = useState(false);
+  const defaultAddress = saved.data?.find((a) => a.is_default);
+  if (defaultAddress && !defaultApplied) {
+    setDefaultApplied(true);
+    if (!f.street && !f.building) applySavedAddress(defaultAddress);
   }
 
   // Move focus to the step heading so keyboard and screen reader users land in the right place.
@@ -218,7 +232,7 @@ export default function CheckoutPage() {
 
           {step < 4 ? (
             <form onSubmit={next} noValidate>
-              {step === 0 && <FulfilmentStep f={f} set={set} errors={errors} zoneProblem={stepProblem.zone} />}
+              {step === 0 && <FulfilmentStep f={f} set={set} errors={errors} zoneProblem={stepProblem.zone} saved={saved.data ?? []} onUseSaved={applySavedAddress} />}
               {step === 1 && <ScheduleStep f={f} set={set} errors={errors} lines={cart.lines} dateProblem={stepProblem.date} slotProblem={stepProblem.slot} />}
               {step === 2 && <ContactStep f={f} set={set} errors={errors} />}
               {step === 3 && <PaymentStep f={{ ...f, payment }} set={set} methods={methods} />}
@@ -236,6 +250,11 @@ export default function CheckoutPage() {
           ) : (
             <form onSubmit={place} noValidate>
               <Review f={{ ...f, payment }} />
+              {policy_text && (
+                <p className="mt-4 rounded-md border-2 border-line p-3">
+                  <strong>Changing your mind:</strong> {policy_text}
+                </p>
+              )}
               <div className="mt-6 flex flex-wrap gap-3">
                 <button type="button" onClick={() => setStep(3)} className="min-h-11 rounded-md border-2 border-line px-5 font-semibold">
                   Back

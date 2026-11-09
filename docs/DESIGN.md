@@ -603,6 +603,18 @@ Browser ──▶ Vercel (static SPA, CDN)
 
 ---
 
+### M6 implementation notes
+
+- **The rule** (`services/policies.py`): a customer can cancel or change an order only while its status is `received` or `accepted` **and** now is no later than `slot_start − cancellation_window_hours`. The API returns `can_change`, `can_modify_until` and `cancel_refund` with the order, so the tracking page says "until Mon 10:00" and "you will get 800.00 EGP back" instead of making the customer guess. The window and the refund policy (`full`, `percentage` 1 to 99, or `none`) are the owner's, edited under **Cancellation and refunds**; the wording customers read is generated from them (plus an optional extra note) and shown on the order page and at checkout.
+- **Who may do it.** The customer only: the holder of the tracking link, or the signed-in owner of the order. Staff use their own endpoints (a staff member calling the customer endpoint gets the same 404 as a stranger).
+- **Cancelling** is one transaction under the order's row lock: refund (card orders, per policy; a failed refund changes nothing and tells the customer), free the units and the slot, record the reason, email the customer. Two simultaneous cancels free the capacity once. Staff cancellation and rejection still refund in full.
+- **Changing** covers date and time slot, delivery area and address, and notes. The items are not editable: to change them the customer cancels and orders again (a deliberate trim of the §4.4 table, which allowed item changes on cash orders). If the date or slot changes, the old and new days are locked in date order, the order's own units are released, the new booking is checked with the same rules as a fresh order (lead time, capacity, closures), and the new day is reserved, all or nothing. If only the address or notes change, the date is not re-checked, so a customer is never refused for the clock having moved on. A paid card order keeps its total, so it can only move to an area with the same fee; a cash order's fee and total follow the new area. Prices stay as ordered. Each change adds a line to the order history and sends the "order changed" email.
+- **Account.** `PATCH /me` edits name and phone (the email and role cannot be changed here). Saved addresses (`/me/addresses`, up to 10, one default, delivery areas must be active) are prefilled at checkout: the default is filled in on arrival and any can be picked. `/me/orders` lists the customer's own orders, newest first; guest orders are not linked.
+- **Tracking page** now refreshes itself every 30 seconds until the order is finished (every 3 seconds while waiting for payment), so progress stays current without a reload.
+- **Tests** freeze the clock at fixed dates; their login tokens are now minted to be valid at any frozen time (they used the real clock, which made tests depend on the time of day they ran).
+
+---
+
 ## 14. Delivery plan
 
 Each milestone is one or more pull requests with tests. The demo is updated at the end of each milestone.
@@ -615,7 +627,7 @@ Each milestone is one or more pull requests with tests. The demo is updated at t
 | M3 ✅ | Cart, quote, checkout, COD orders, capacity reservation | C2 |
 | M4 ✅ | Paymob (Egypt) test payments, webhooks, outbox emails, templates | C2.4, C3.1, O4.2, O4.3 |
 | M5 ✅ | Staff queue, lifecycle, delay/cancel, contact, prep sheet | S1 |
-| M6 | Tracking, modify/cancel window, refunds, account pages | C3, C4.2, C4.3, O2 |
+| M6 ✅ | Tracking, modify/cancel window, refunds, account pages | C3, C4.2, C4.3, O2 |
 | M7 | Team management, settings, accessibility audit, demo seed, deploy, README polish | O3, O4, D1, D2 |
 
 ---

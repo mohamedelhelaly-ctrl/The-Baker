@@ -15,14 +15,17 @@ from app.deps import get_optional_user
 from app.models.order import OrderStatus, PaymentMethod
 from app.models.user import User, UserRole
 from app.schemas.checkout import (
+    CustomerCancel,
     OrderCreate,
     OrderCreated,
     OrderRead,
+    OrderUpdate,
     PaymentLink,
     QuoteRequest,
     QuoteResponse,
 )
 from app.services.checkout import place_and_pay
+from app.services.customer_orders import cancel_order, modify_order, order_view
 from app.services.payments import get_payment_provider
 from app.services.payments.base import PaymentProviderError
 from app.services.payments.service import ORDER_EXPIRY_MINUTES, start_card_payment
@@ -59,7 +62,7 @@ async def create_order(
     order, created, payment_url = await place_and_pay(db, body, user, idempotency_key, store_now())
     if not created:
         response.status_code = 200  # a retry of the same request: nothing new was created
-    data = OrderRead.model_validate(order).model_dump()
+    data = (await order_view(db, order, store_now())).model_dump()
     return OrderCreated(**data, tracking_token=tracking_token(order.code), payment_url=payment_url)
 
 
@@ -85,7 +88,52 @@ async def get_order(
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_optional_user),
 ):
-    return await _visible_order(db, code, t, user)
+    return await order_view(db, await _visible_order(db, code, t, user), store_now())
+
+
+async def _own_order(db: AsyncSession, code: str, token: str | None, user: User | None):
+    """Changing an order is for the customer only: the token holder or the signed-in owner of it."""
+    order = await order_crud.get_by_code(db, code.upper())
+    allowed = order is not None and (
+        verify_tracking_token(order.code, token)
+        or (user is not None and order.user_id is not None and order.user_id == user.id)
+    )
+    if not allowed:
+        raise ApiError(404, "order_not_found", "We could not find that order.")
+    return order
+
+
+@router.patch("/orders/{code}", response_model=OrderRead)
+@limiter.limit("20/minute")
+async def update_order(
+    request: Request,
+    code: str,
+    body: OrderUpdate,
+    t: str | None = Query(default=None, max_length=100),
+    db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
+):
+    order = await _own_order(db, code, t, user)
+    now = store_now()
+    updated = await modify_order(db, order.id, body, now, user.id if user else None)
+    return await order_view(db, updated, now)
+
+
+@router.post("/orders/{code}/cancel", response_model=OrderRead)
+@limiter.limit("20/minute")
+async def customer_cancel(
+    request: Request,
+    code: str,
+    body: CustomerCancel | None = None,
+    t: str | None = Query(default=None, max_length=100),
+    db: AsyncSession = Depends(get_db),
+    user: User | None = Depends(get_optional_user),
+):
+    order = await _own_order(db, code, t, user)
+    now = store_now()
+    reason = body.reason if body else None
+    cancelled = await cancel_order(db, order.id, now, user.id if user else None, reason)
+    return await order_view(db, cancelled, now)
 
 
 @router.post("/orders/{code}/payment-link", response_model=PaymentLink)

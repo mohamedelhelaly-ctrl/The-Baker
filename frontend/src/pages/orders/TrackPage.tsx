@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
+import { ChangeOrCancel } from "../../components/orders/ChangeOrCancel";
 import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
 import { useApi } from "../../hooks/useApi";
@@ -20,18 +21,24 @@ export default function TrackPage() {
   const paymobSuccess = query.get("success");
   const returnedPaid = query.get("paid") === "1" && paymobSuccess !== "false";
   const returnedCancelled = query.get("cancelled") === "1" || paymobSuccess === "false";
-  const justPlaced = Boolean((useLocation().state as { justPlaced?: boolean } | null)?.justPlaced);
+  const locationState = useLocation().state as { justPlaced?: boolean; changed?: boolean } | null;
+  const justPlaced = Boolean(locationState?.justPlaced);
+  const justChanged = Boolean(locationState?.changed);
   const path = `/orders/${encodeURIComponent(code)}${token ? `?t=${encodeURIComponent(token)}` : ""}`;
-  const { data: order, error, loading, reload } = useApi<Order>(path);
+  const { data, error, loading, reload } = useApi<Order>(path);
+  const [cancelled, setCancelled] = useState<Order | null>(null); // the order as returned by cancelling it
+  const order = cancelled ?? data;
   usePageTitle(order ? `Order ${order.code}` : "Your order");
 
-  // After paying, the provider tells us by webhook, which can take a moment: keep checking.
+  // After paying, the provider tells us by webhook, which can take a moment: keep checking. Once the
+  // order is confirmed, look again now and then so the progress stays current without a reload.
   const waiting = order?.status === "pending_payment";
+  const finished = order ? ["delivered", "picked_up", "rejected", "cancelled"].includes(order.status) : true;
   useEffect(() => {
-    if (!waiting) return;
-    const id = setInterval(reload, 3000);
+    if (finished) return;
+    const id = setInterval(reload, waiting ? 3000 : 30_000);
     return () => clearInterval(id);
-  }, [waiting, reload]);
+  }, [waiting, finished, reload]);
 
   if (loading && !order) return <output>Loading…</output>;
   if (error || !order) {
@@ -52,13 +59,15 @@ export default function TrackPage() {
     );
   }
   return (
-    <OrderView order={order} justPlaced={justPlaced} returnedPaid={returnedPaid} returnedCancelled={returnedCancelled} token={token} />
+    <OrderView order={order} justPlaced={justPlaced} justChanged={justChanged} returnedPaid={returnedPaid} returnedCancelled={returnedCancelled} token={token} onCancelled={setCancelled} />
   );
 }
 
-function OrderView({ order, justPlaced, returnedPaid, returnedCancelled, token }: {
+function OrderView({ order, justPlaced, justChanged, returnedPaid, returnedCancelled, token, onCancelled }: {
   order: Order;
   justPlaced: boolean;
+  justChanged: boolean;
+  onCancelled: (o: Order) => void;
   returnedPaid: boolean;
   returnedCancelled: boolean;
   token: string | null;
@@ -112,6 +121,11 @@ function OrderView({ order, justPlaced, returnedPaid, returnedCancelled, token }
       {justPlaced && (
         <Alert kind="success" title="Thank you, your order has been received">
           Keep this page: its link is how you check on your order.
+        </Alert>
+      )}
+      {justChanged && (
+        <Alert kind="success" title="Your order was updated">
+          We emailed you the new details.
         </Alert>
       )}
       <h1 className="font-display text-3xl font-bold">Order {order.code}</h1>
@@ -211,6 +225,7 @@ function OrderView({ order, justPlaced, returnedPaid, returnedCancelled, token }
           </p>
         </section>
       </div>
+      <ChangeOrCancel order={order} token={token} onCancelled={onCancelled} />
     </article>
   );
 }

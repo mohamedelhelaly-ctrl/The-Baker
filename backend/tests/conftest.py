@@ -100,10 +100,22 @@ async def client(sync_engine):
         yield c
 
 
+def _token_valid_at_any_frozen_time(user_id: int) -> str:
+    """Tests freeze the clock at fixed dates (time_machine). A token stamped with the real clock would
+    look 'issued in the future' whenever the frozen time is earlier, so these span 2000 to 2100."""
+    import jwt
+
+    from app.config import get_settings
+
+    s = get_settings()
+    payload = {"sub": str(user_id), "iat": 946_684_800, "exp": 4_102_444_800}
+    return jwt.encode(payload, s.jwt_secret, algorithm=s.jwt_algorithm)
+
+
 @pytest.fixture
 async def make_headers(client):
     """Return auth headers for a new user of the given role."""
-    from app.core.security import create_access_token, hash_password
+    from app.core.security import hash_password
     from app.crud.user import user_crud
     from app.database import SessionLocal
     from app.models.user import UserRole
@@ -119,7 +131,7 @@ async def make_headers(client):
                 full_name=role.title(),
                 role=UserRole(role),
             )
-        return {"Authorization": f"Bearer {create_access_token(user.id)}"}
+        return {"Authorization": f"Bearer {_token_valid_at_any_frozen_time(user.id)}"}
 
     return make
 

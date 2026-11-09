@@ -43,6 +43,8 @@ export interface StoreInfo {
   currency_exponent: number;
   opening_hours: HoursEntry[];
   payment_methods: ("cod" | "card")[];
+  cancellation_window_hours: number;
+  policy_text: string;
 }
 
 export interface CategoryBrief {
@@ -249,6 +251,8 @@ export interface Order {
   fulfilment_date: string;
   slot_starts_at: string;
   slot_ends_at: string;
+  time_slot_id: number | null;
+  zone_id: number | null;
   zone_name: string | null;
   delivery_address: { street: string; building: string; floor?: string; apartment?: string; landmark?: string } | null;
   contact_name: string;
@@ -266,6 +270,9 @@ export interface Order {
   placed_at: string;
   items: OrderItem[];
   events: OrderEvent[];
+  can_change: boolean; // before the window closes and before preparation starts
+  can_modify_until: string | null;
+  cancel_refund: number | null; // what cancelling now would return (null: nothing was paid by card)
 }
 export interface OrderCreated extends Order {
   tracking_token: string;
@@ -352,4 +359,39 @@ export interface NotificationLogItem {
   last_error: string | null;
   created_at: string;
   sent_at: string | null;
+}
+
+// ---- account ----
+export interface SavedAddress {
+  id: number;
+  label: string;
+  zone_id: number;
+  zone_name: string | null;
+  street: string;
+  building: string;
+  floor: string | null;
+  apartment: string | null;
+  landmark: string | null;
+  is_default: boolean;
+}
+export interface OrderSummary {
+  code: string;
+  status: OrderStatus;
+  fulfilment_type: Fulfilment;
+  fulfilment_date: string;
+  slot_starts_at: string;
+  slot_ends_at: string;
+  total: number;
+  currency: string;
+  payment_method: "cod" | "card";
+  payment_status: string;
+  placed_at: string;
+  summary: string;
+}
+export interface Policy {
+  cancellation_window_hours: number;
+  refund_policy: "full" | "percentage" | "none";
+  refund_percentage: number;
+  policy_note: string | null;
+  preview: string;
 }

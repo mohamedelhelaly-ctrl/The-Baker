@@ -1,4 +1,5 @@
-import type { Fulfilment, OrderStatus } from "./types";
+import { formatMoney } from "./money";
+import type { Fulfilment, Order, OrderStatus } from "./types";
 
 export const STATUS_LABEL: Record<OrderStatus, string> = {
   pending_payment: "Waiting for payment",
@@ -47,3 +48,12 @@ export const PAYMENT_LABEL: Record<string, string> = {
   refunded: "Refunded",
   failed: "Payment failed",
 };
+
+/** What the customer would get back by cancelling now, in words. */
+export function refundSentence(order: Order): string | null {
+  if (order.cancel_refund === null) return null;
+  const money = formatMoney(order.cancel_refund, order.currency);
+  if (order.cancel_refund === 0) return "Under our policy, an order paid by card is not refunded when you cancel it.";
+  if (order.cancel_refund === order.total) return `Your card payment of ${money} will be refunded in full.`;
+  return `${money} of your card payment will be refunded, as our policy says.`;
+}

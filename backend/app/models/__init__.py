@@ -1,4 +1,5 @@
 # Import every model so SQLAlchemy mappers and Alembic autogenerate see them.
+from app.models.address import SavedAddress  # noqa: F401
 from app.models.category import Category  # noqa: F401
 from app.models.notification import (  # noqa: F401
     Notification,
@@ -29,5 +30,5 @@ from app.models.schedule import (  # noqa: F401
     StoreClosure,
     TimeSlot,
 )
-from app.models.store_settings import StoreSettings  # noqa: F401
+from app.models.store_settings import RefundPolicy, StoreSettings  # noqa: F401
 from app.models.user import User, UserRole  # noqa: F401

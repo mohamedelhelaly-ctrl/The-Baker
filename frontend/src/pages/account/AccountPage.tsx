@@ -1,17 +1,45 @@
-import { useEffect } from "react";
+import { useState } from "react";
+import { Alert } from "../../components/ui/Alert";
+import { Button } from "../../components/ui/Button";
+import { TextField } from "../../components/ui/TextField";
+import { useFormSubmit } from "../../hooks/useFormSubmit";
+import { usePageTitle } from "../../hooks/usePageTitle";
+import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import type { Me } from "../../lib/types";
 
+/** The profile: name and phone are editable, the email is how the account is identified. */
 export default function AccountPage() {
-  const { user } = useAuth();
-  useEffect(() => {
-    document.title = "My account · The Baker";
-  }, []);
+  usePageTitle("My account");
+  const { user, updateUser } = useAuth();
+  const [name, setName] = useState(user?.full_name ?? "");
+  const [phone, setPhone] = useState(user?.phone ?? "");
+  const [saved, setSaved] = useState(false);
+  const { pending, error, summaryRef, onSubmit } = useFormSubmit(async () => {
+    setSaved(false);
+    updateUser(await api.patch<Me>("/me", { full_name: name, phone }));
+    setSaved(true);
+  });
+
   return (
-    <section>
-      <h1 className="font-display text-3xl font-bold">My account</h1>
-      <p className="mt-4">
-        Signed in as <strong>{user?.full_name}</strong> ({user?.email}).
+    <>
+      <h2 className="mb-2 font-display text-2xl font-bold">Your details</h2>
+      <p className="mb-4 max-w-prose">
+        Signed in as <strong>{user?.email}</strong>. We use your name and phone number to fill in checkout for you.
       </p>
-    </section>
+      <form noValidate onSubmit={onSubmit} className="max-w-md">
+        {error && (
+          <Alert ref={summaryRef} kind="error" title="We could not save your details">
+            {error.message}
+          </Alert>
+        )}
+        <div aria-live="polite">{saved && <Alert kind="success">Your details were saved.</Alert>}</div>
+        <TextField label="Full name" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} error={error?.fields.full_name} />
+        <TextField label="Phone" type="tel" autoComplete="tel" hint="Optional. The driver or bakery may call you." value={phone} onChange={(e) => setPhone(e.target.value)} error={error?.fields.phone} />
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving…" : "Save details"}
+        </Button>
+      </form>
+    </>
   );
 }

@@ -171,6 +171,25 @@ class OrderCRUD:
         ).scalar_one()
         return lines, messages, order_count
 
+    async def list_for_user(
+        self, db: AsyncSession, user_id: int, page: int, page_size: int
+    ) -> tuple[list[Order], int]:
+        where = Order.user_id == user_id
+        total = (
+            await db.execute(select(func.count()).select_from(Order).where(where))
+        ).scalar_one()
+        rows = (
+            await db.execute(
+                select(Order)
+                .options(selectinload(Order.items))
+                .where(where)
+                .order_by(Order.placed_at.desc(), Order.id.desc())
+                .limit(page_size)
+                .offset((page - 1) * page_size)
+            )
+        ).scalars()
+        return list(rows), total
+
     async def code_exists(self, db: AsyncSession, code: str) -> bool:
         return (await db.execute(select(Order.id).where(Order.code == code))).first() is not None
 

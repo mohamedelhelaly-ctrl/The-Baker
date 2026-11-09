@@ -4,7 +4,7 @@ import { useApi } from "../../hooks/useApi";
 import { formatDate, formatTime, hhmm } from "../../lib/dates";
 import { itemsParam } from "../../lib/orders";
 import { useMoney } from "../../lib/store";
-import type { DatesResponse, DeliveryZone, Fulfilment, SlotsResponse } from "../../lib/types";
+import type { DatesResponse, DeliveryZone, Fulfilment, SavedAddress, SlotsResponse } from "../../lib/types";
 
 export interface FormState {
   fulfilment: Fulfilment;
@@ -25,7 +25,9 @@ export interface FormState {
 export type SetField = <K extends keyof FormState>(key: K, value: FormState[K]) => void;
 type Errors = Record<string, string | undefined>;
 
-export function FulfilmentStep({ f, set, errors, zoneProblem }: { f: FormState; set: SetField; errors: Errors; zoneProblem?: string }) {
+export function FulfilmentStep({ f, set, errors, zoneProblem, saved = [], onUseSaved }: {
+  f: FormState; set: SetField; errors: Errors; zoneProblem?: string; saved?: SavedAddress[]; onUseSaved?: (address: SavedAddress) => void;
+}) {
   const money = useMoney();
   const zones = useApi<DeliveryZone[]>("/delivery-zones");
   const choice = "mb-2 flex min-h-11 cursor-pointer items-center gap-3 rounded-md border-2 border-line bg-surface px-3 has-[:checked]:border-primary";
@@ -45,6 +47,23 @@ export function FulfilmentStep({ f, set, errors, zoneProblem }: { f: FormState; 
 
       {f.fulfilment === "delivery" && (
         <>
+          {saved.length > 0 && onUseSaved && (
+            <SelectField
+              label="Use a saved address"
+              value=""
+              onChange={(e) => {
+                const chosen = saved.find((a) => String(a.id) === e.target.value);
+                if (chosen) onUseSaved(chosen);
+              }}
+            >
+              <option value="">Choose one, or type a new address below</option>
+              {saved.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.label}: {a.street}, building {a.building}
+                </option>
+              ))}
+            </SelectField>
+          )}
           <SelectField label="Delivery area" required value={f.zoneId} onChange={(e) => set("zoneId", e.target.value)} error={errors.zone ?? zoneProblem}>
             <option value="">Choose your area</option>
             {zones.data?.map((z) => (
@@ -68,8 +87,8 @@ export function FulfilmentStep({ f, set, errors, zoneProblem }: { f: FormState; 
   );
 }
 
-export function ScheduleStep({ f, set, errors, lines, dateProblem, slotProblem }: {
-  f: FormState; set: SetField; errors: Errors; lines: { variantId: number; quantity: number }[]; dateProblem?: string; slotProblem?: string;
+export function ScheduleStep({ f, set, errors, lines, dateProblem, slotProblem, dateHint = "Only dates we can make everything in your cart for are listed." }: {
+  f: FormState; set: SetField; errors: Errors; lines: { variantId: number; quantity: number }[]; dateProblem?: string; slotProblem?: string; dateHint?: string;
 }) {
   const items = itemsParam(lines);
   const dates = useApi<DatesResponse>(`/availability/dates?fulfilment=${f.fulfilment}&days=45&items=${items}`);
@@ -88,7 +107,7 @@ export function ScheduleStep({ f, set, errors, lines, dateProblem, slotProblem }
           set("slotId", "");
         }}
         error={errors.date ?? dateProblem}
-        hint="Only dates we can make everything in your cart for are listed."
+        hint={dateHint}
       >
         <option value="">Choose a date</option>
         {open.map((d) => (

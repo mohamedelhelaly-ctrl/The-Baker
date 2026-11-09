@@ -11,7 +11,10 @@ const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage"));
+const AccountLayout = lazy(() => import("./pages/account/AccountLayout"));
 const AccountPage = lazy(() => import("./pages/account/AccountPage"));
+const AddressesPage = lazy(() => import("./pages/account/AddressesPage"));
+const OrdersPage = lazy(() => import("./pages/account/OrdersPage"));
 const MenuPage = lazy(() => import("./pages/menu/MenuPage"));
 const ProductPage = lazy(() => import("./pages/menu/ProductPage"));
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
@@ -23,7 +26,9 @@ const CartPage = lazy(() => import("./pages/cart/CartPage"));
 const CheckoutPage = lazy(() => import("./pages/checkout/CheckoutPage"));
 const FakePayPage = lazy(() => import("./pages/payments/FakePayPage"));
 const TrackPage = lazy(() => import("./pages/orders/TrackPage"));
+const ChangeOrderPage = lazy(() => import("./pages/orders/ChangeOrderPage"));
 const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
+const AdminPoliciesPage = lazy(() => import("./pages/admin/AdminPoliciesPage"));
 const DeliveryPage = lazy(() => import("./pages/delivery/DeliveryPage"));
 const AdminTaxonomyPage = lazy(() => import("./pages/admin/AdminTaxonomyPage"));
 const StaffLayout = lazy(() => import("./pages/staff/StaffLayout"));
@@ -45,6 +50,7 @@ export default function App() {
           <Route path="cart" element={<CartPage />} />
           <Route path="checkout" element={<CheckoutPage />} />
           <Route path="track/:code" element={<TrackPage />} />
+          <Route path="track/:code/change" element={<ChangeOrderPage />} />
           <Route path="fake-pay/:code" element={<FakePayPage />} />
           <Route element={<GuestOnly />}>
             <Route path="login" element={<LoginPage />} />
@@ -53,7 +59,11 @@ export default function App() {
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route element={<RequireAuth />}>
-            <Route path="account" element={<AccountPage />} />
+            <Route path="account" element={<AccountLayout />}>
+              <Route index element={<AccountPage />} />
+              <Route path="orders" element={<OrdersPage />} />
+              <Route path="addresses" element={<AddressesPage />} />
+            </Route>
             <Route element={<RequireModule module="orders_queue" />}>
               <Route path="staff" element={<StaffLayout />}>
                 <Route path="orders" element={<StaffQueuePage />} />
@@ -76,6 +86,7 @@ export default function App() {
               </Route>
               <Route element={<RequireModule module="settings" />}>
                 <Route path="payments" element={<AdminPaymentsPage />} />
+                <Route path="policies" element={<AdminPoliciesPage />} />
               </Route>
             </Route>
           </Route>

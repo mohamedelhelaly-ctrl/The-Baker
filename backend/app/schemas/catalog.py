@@ -82,3 +82,5 @@ class StoreRead(BaseModel):
     currency_exponent: int
     opening_hours: list[HoursRead] = []
     payment_methods: list[str] = ["cod"]  # what checkout offers: cod and/or card
+    cancellation_window_hours: int = 24
+    policy_text: str = ""  # the cancellation and refund rules, in words

@@ -16,6 +16,7 @@ from app.core.rate_limit import limiter
 from app.database import engine
 from app.deps import require_module
 from app.routers import (
+    account,
     admin_catalog,
     admin_schedule,
     admin_settings,
@@ -70,6 +71,9 @@ app.include_router(
     checkout.router, prefix=API_PREFIX
 )  # guests may order; reads need ownership or a token
 app.include_router(payments.router, prefix=API_PREFIX)  # provider callbacks (signature-verified)
+app.include_router(  # any signed-in user: their own profile, addresses and orders
+    account.router, prefix=API_PREFIX, dependencies=[Depends(require_module("account"))]
+)
 app.include_router(availability.router, prefix=API_PREFIX)  # public: zones and bookable dates/slots
 app.include_router(  # owner only; write endpoints add their own write guard
     admin_catalog.router, prefix=API_PREFIX, dependencies=[Depends(require_module("catalog_admin"))]
