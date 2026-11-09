@@ -20,7 +20,7 @@ export function AppShell() {
       >
         {s.skipToContent}
       </a>
-      <header className="sticky top-0 z-10 border-b-2 border-line bg-surface">
+      <header className="sticky top-0 z-10 border-b-2 border-line bg-surface print:hidden">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-2">
           <Link to="/" className="font-display text-2xl font-bold">
             {s.brand}
@@ -29,6 +29,11 @@ export function AppShell() {
             <Link to="/menu" className={link}>
               {s.nav.menu}
             </Link>
+            {can("orders_queue") && (
+              <Link to="/staff/orders" className={link}>
+                {s.nav.orders}
+              </Link>
+            )}
             {(can("catalog_admin") || can("schedule_admin") || can("settings")) && (
               <Link to="/admin" className={link}>
                 {s.nav.manage}
@@ -63,7 +68,7 @@ export function AppShell() {
       <main id="main" tabIndex={-1} className="mx-auto min-h-[70vh] max-w-5xl px-4 py-8">
         <Outlet />
       </main>
-      <footer className="border-t-2 border-line px-4 py-8">
+      <footer className="border-t-2 border-line px-4 py-8 print:hidden">
         <div className="mx-auto grid max-w-5xl gap-8 sm:grid-cols-2">
           {opening_hours.length > 0 && (
             <div>

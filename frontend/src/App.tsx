@@ -26,9 +26,13 @@ const TrackPage = lazy(() => import("./pages/orders/TrackPage"));
 const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
 const DeliveryPage = lazy(() => import("./pages/delivery/DeliveryPage"));
 const AdminTaxonomyPage = lazy(() => import("./pages/admin/AdminTaxonomyPage"));
+const StaffLayout = lazy(() => import("./pages/staff/StaffLayout"));
+const StaffQueuePage = lazy(() => import("./pages/staff/StaffQueuePage"));
+const StaffOrderPage = lazy(() => import("./pages/staff/StaffOrderPage"));
+const StaffPrepSheetPage = lazy(() => import("./pages/staff/StaffPrepSheetPage"));
 const NotFoundPage = lazy(() => import("./pages/errors/NotFoundPage"));
 
-// All routes and guards live here. Later milestones add <RequireModule module="orders_queue"> groups.
+// All routes and guards live here: one <RequireModule> group per permission module.
 export default function App() {
   return (
     <Suspense fallback={<Loading />}>
@@ -50,6 +54,13 @@ export default function App() {
           <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route element={<RequireAuth />}>
             <Route path="account" element={<AccountPage />} />
+            <Route element={<RequireModule module="orders_queue" />}>
+              <Route path="staff" element={<StaffLayout />}>
+                <Route path="orders" element={<StaffQueuePage />} />
+                <Route path="orders/:id" element={<StaffOrderPage />} />
+                <Route path="prep-sheet" element={<StaffPrepSheetPage />} />
+              </Route>
+            </Route>
             <Route path="admin" element={<AdminLayout />}>
               <Route index element={null} />
               <Route element={<RequireModule module="catalog_admin" />}>

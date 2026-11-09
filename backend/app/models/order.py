@@ -10,6 +10,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    Text,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -115,6 +116,12 @@ class Order(Base):
         cascade="all, delete-orphan",
         order_by="OrderStatusEvent.id",
     )
+    messages: Mapped[list["OrderMessage"]] = relationship(
+        back_populates="order",
+        lazy="raise",
+        cascade="all, delete-orphan",
+        order_by="OrderMessage.id",
+    )
 
 
 class OrderItem(Base):
@@ -154,3 +161,19 @@ class OrderStatusEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     order: Mapped[Order] = relationship(back_populates="events", lazy="raise")
+
+
+class OrderMessage(Base):
+    """A message staff sent to the customer about an order (also emailed through the outbox)."""
+
+    __tablename__ = "order_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
+    author_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    order: Mapped[Order] = relationship(back_populates="messages", lazy="raise")

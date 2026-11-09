@@ -272,6 +272,54 @@ export interface OrderCreated extends Order {
   payment_url: string | null; // card orders: the page to pay on
 }
 
+// ---- staff order queue ----
+export interface StaffOrderRow {
+  id: number;
+  code: string;
+  status: OrderStatus;
+  fulfilment_type: Fulfilment;
+  fulfilment_date: string;
+  slot_starts_at: string;
+  slot_ends_at: string;
+  zone_name: string | null;
+  contact_name: string;
+  contact_phone: string;
+  total: number;
+  currency: string;
+  payment_method: "cod" | "card";
+  payment_status: string;
+  is_delayed: boolean;
+  delay_note: string | null;
+  item_count: number;
+}
+export interface StaffAction {
+  to: OrderStatus;
+  needs_reason: boolean;
+}
+export interface StaffMessage {
+  body: string;
+  created_at: string;
+}
+export interface StaffOrder extends Order {
+  id: number;
+  actions: StaffAction[];
+  messages: StaffMessage[];
+  can_mark_paid: boolean;
+  can_delay: boolean;
+}
+export interface QueueSummary {
+  counts: Partial<Record<OrderStatus, number>>;
+  total: number;
+  delayed: number;
+}
+export interface PrepSheet {
+  date: string;
+  order_count: number;
+  total_units: number;
+  lines: { product_name: string; variant_name: string; quantity: number; orders: number }[];
+  messages: { order_code: string; slot_starts_at: string; product_name: string; variant_name: string; quantity: number; text: string }[];
+}
+
 // ---- payments, emails and the email log (owner screens) ----
 export interface PaymentSettings {
   card_enabled: boolean;

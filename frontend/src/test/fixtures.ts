@@ -127,3 +127,25 @@ export const placedOrder = {
   items: [{ product_name: "Triple Chocolate Cake", variant_name: "6-inch", unit_price: 65000, quantity: 2, line_total: 130000, inscription: "Happy Birthday" }],
   events: [{ from_status: null, to_status: "received", reason: null, created_at: "2030-12-01T10:30:00Z" }],
 };
+
+// ---- staff order queue ----
+export const queueRow = {
+  id: 7, code: "BK-ABC234", status: "received", fulfilment_type: "delivery", fulfilment_date: "2030-12-04",
+  slot_starts_at: "2030-12-04T08:00:00Z", slot_ends_at: "2030-12-04T10:00:00Z", zone_name: "Maadi",
+  contact_name: "Sara Ali", contact_phone: "+20 100 123 4567", total: 134000, currency: "EGP",
+  payment_method: "cod", payment_status: "unpaid", is_delayed: false, delay_note: null, item_count: 2,
+};
+export const queuePage = (items: unknown[] = [queueRow]) => ({ items, total: items.length, page: 1, page_size: 25, total_pages: 1 });
+export const queueSummary = {
+  counts: { received: 1, accepted: 2, preparing: 0, ready: 0, out_for_delivery: 0, delivered: 1, picked_up: 0, rejected: 0, cancelled: 1 },
+  total: 5, delayed: 1,
+};
+export const staffOrder = {
+  ...placedOrder, id: 7, can_mark_paid: true, can_delay: true, messages: [],
+  actions: [{ to: "accepted", needs_reason: false }, { to: "rejected", needs_reason: true }, { to: "cancelled", needs_reason: true }],
+};
+export const prepSheet = {
+  date: "2030-12-04", order_count: 3, total_units: 4,
+  lines: [{ product_name: "Triple Chocolate Cake", variant_name: "6-inch", quantity: 3, orders: 2 }, { product_name: "Triple Chocolate Cake", variant_name: "8-inch", quantity: 1, orders: 1 }],
+  messages: [{ order_code: "BK-ABC234", slot_starts_at: "2030-12-04T08:00:00Z", product_name: "Triple Chocolate Cake", variant_name: "6-inch", quantity: 1, text: "Happy Birthday Sara" }],
+};

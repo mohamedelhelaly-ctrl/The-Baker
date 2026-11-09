@@ -71,7 +71,7 @@ def order_body(
         "fulfilment_type": fulfilment,
         "date": str(day),
         "slot_id": slot_id,
-        "contact": CONTACT,
+        "contact": dict(CONTACT),  # a copy: tests change the body
         "payment_method": "cod",
     }
     if fulfilment == "delivery":

@@ -588,6 +588,21 @@ Browser ──▶ Vercel (static SPA, CDN)
 
 ---
 
+### M5 implementation notes
+
+- **One transition table** (`services/orders.py`): each row is `(from, to, roles, fulfilment type, needs reason)`. The API enforces it (`409 invalid_transition` for anything else, so stages cannot be skipped or repeated) and the order detail returns `actions`, the steps the signed-in person may take next, so the screen only shows those buttons. Delivery orders end at `delivered`, pickup orders at `picked_up`.
+- **Staff only see paid orders.** Unpaid card orders (`pending_payment`) are left out of the queue, the counts and the prep sheet, and answer 404 to every staff action. They appear once the payment is confirmed.
+- **Every action locks the order row first** (`services/staff_orders.py`), so two staff members, or staff and a payment event, cannot act on the same order at once. Two simultaneous rejections release the capacity once: one wins, the other gets 409.
+- **Reject and cancel are one transaction:** refund (card orders that were paid), give the units and the slot back, record the reason on the order and its timeline, queue the customer's email. If the refund fails, nothing changes and the person sees an error, so an order is never cancelled while the money is kept. Cash orders need no refund.
+- **Late is a flag, not a status** (`is_delayed` + note). Marking it emails the customer; it can be updated or removed, and it clears itself when the order finishes or is closed.
+- **Contact the customer** emails through the same outbox (`staff_message` template) and keeps a copy in `order_messages`, shown on the order. Staff also see the phone and email as links.
+- **Cash collected** (`mark-paid`) records payment on a cash order; it is refused for card orders and for rejected or cancelled orders.
+- **Queue:** filter by day (or all days), stage, delivery or pickup, and search by code, name, phone or email (typed `%` and `_` are plain text). Counts per stage come from `/staff/orders/summary`. The page refreshes itself every 30 seconds.
+- **Prep sheet:** per day, the quantity of each product and size to make (declined, cancelled and unpaid orders are not counted) and the messages to write on cakes with their time slot. It prints cleanly (the site header, footer and controls are hidden when printing).
+- Staff and the owner have the same rights in this module; the table keeps the role column so a stricter rule can be added without changing the API.
+
+---
+
 ## 14. Delivery plan
 
 Each milestone is one or more pull requests with tests. The demo is updated at the end of each milestone.
@@ -599,7 +614,7 @@ Each milestone is one or more pull requests with tests. The demo is updated at t
 | M2 ✅ | Schedule and zones: hours, slots, closures, capacity, availability endpoints | O1.3, D6 |
 | M3 ✅ | Cart, quote, checkout, COD orders, capacity reservation | C2 |
 | M4 ✅ | Paymob (Egypt) test payments, webhooks, outbox emails, templates | C2.4, C3.1, O4.2, O4.3 |
-| M5 | Staff queue, lifecycle, delay/cancel, contact, prep sheet | S1 |
+| M5 ✅ | Staff queue, lifecycle, delay/cancel, contact, prep sheet | S1 |
 | M6 | Tracking, modify/cancel window, refunds, account pages | C3, C4.2, C4.3, O2 |
 | M7 | Team management, settings, accessibility audit, demo seed, deploy, README polish | O3, O4, D1, D2 |
 

@@ -24,6 +24,7 @@ from app.routers import (
     catalog,
     checkout,
     payments,
+    staff_orders,
 )
 from app.tasks.runner import start_background_tasks, stop_background_tasks
 
@@ -82,6 +83,10 @@ app.include_router(  # staff may read, owner may write; writes add their own gua
 
 app.include_router(  # owner only: payment switches, email wording, email log
     admin_settings.router, prefix=API_PREFIX, dependencies=[Depends(require_module("settings"))]
+)
+
+app.include_router(  # staff and owner: the order queue
+    staff_orders.router, prefix=API_PREFIX, dependencies=[Depends(require_module("orders_queue"))]
 )
 
 if settings.storage_backend == "local":  # dev/tests only; production serves photos from R2

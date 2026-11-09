@@ -7,6 +7,7 @@ always taken in the same order (products by id, then the slot) so two checkouts 
 """
 
 import secrets
+from dataclasses import dataclass
 from datetime import date, datetime
 
 from sqlalchemy import select, update
@@ -26,7 +27,7 @@ from app.models.order import (
     PaymentStatus,
 )
 from app.models.schedule import ProductDailyUsage, SlotDailyUsage
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.checkout import OrderCreate, Problem
 from app.services.notifications import enqueue, notifier, order_context
 from app.services.payment_options import available_methods
@@ -270,4 +271,75 @@ async def cancel_unpaid_order(db: AsyncSession, order: Order, reason: str) -> No
         to_email=order.contact_email,
         context=order_context(order, {"reason": reason}),
         order_id=order.id,
+    )
+
+
+# ------------------------------------------------------------------ the lifecycle (DESIGN.md §6.1)
+S = OrderStatus
+STAFF_ROLES = frozenset({UserRole.staff, UserRole.owner})
+
+
+@dataclass(frozen=True)
+class Transition:
+    source: OrderStatus
+    target: OrderStatus
+    roles: frozenset[UserRole]
+    fulfilment: FulfilmentType | None = None  # None: both
+    needs_reason: bool = False
+
+
+TRANSITIONS: tuple[Transition, ...] = (
+    Transition(S.received, S.accepted, STAFF_ROLES),
+    Transition(S.received, S.rejected, STAFF_ROLES, needs_reason=True),
+    Transition(S.accepted, S.preparing, STAFF_ROLES),
+    Transition(S.preparing, S.ready, STAFF_ROLES),
+    Transition(S.ready, S.out_for_delivery, STAFF_ROLES, FulfilmentType.delivery),
+    Transition(S.out_for_delivery, S.delivered, STAFF_ROLES, FulfilmentType.delivery),
+    Transition(S.ready, S.picked_up, STAFF_ROLES, FulfilmentType.pickup),
+    Transition(S.received, S.cancelled, STAFF_ROLES, needs_reason=True),
+    Transition(S.accepted, S.cancelled, STAFF_ROLES, needs_reason=True),
+    Transition(S.preparing, S.cancelled, STAFF_ROLES, needs_reason=True),
+    Transition(S.ready, S.cancelled, STAFF_ROLES, needs_reason=True),
+    Transition(S.out_for_delivery, S.cancelled, STAFF_ROLES, FulfilmentType.delivery, True),
+)
+
+ACTIVE_STATUSES = (
+    S.received,
+    S.accepted,
+    S.preparing,
+    S.ready,
+    S.out_for_delivery,
+)  # an order that still has work to do (can be delayed)
+FINISHED_STATUSES = (S.delivered, S.picked_up, S.rejected, S.cancelled)
+
+STATUS_TEXT = {
+    S.accepted: "Accepted",
+    S.preparing: "Being prepared",
+    S.ready: "Ready",
+    S.out_for_delivery: "Out for delivery",
+    S.delivered: "Delivered",
+    S.picked_up: "Collected",
+}
+
+
+def next_transitions(order: Order, role: UserRole) -> list[Transition]:
+    """What this person may do with the order next. The staff screens only show these buttons."""
+    return [
+        t
+        for t in TRANSITIONS
+        if t.source == order.status
+        and role in t.roles
+        and t.fulfilment in (None, order.fulfilment_type)
+    ]
+
+
+def find_transition(order: Order, to: OrderStatus, role: UserRole) -> Transition:
+    for t in next_transitions(order, role):
+        if t.target == to:
+            return t
+    raise ApiError(
+        409,
+        "invalid_transition",
+        f"This order cannot move from {order.status.value.replace('_', ' ')} "
+        f"to {to.value.replace('_', ' ')}.",
     )

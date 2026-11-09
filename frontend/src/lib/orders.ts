@@ -26,3 +26,24 @@ export function itemsParam(lines: { variantId: number; quantity: number }[]): st
   for (const l of lines) totals.set(l.variantId, (totals.get(l.variantId) ?? 0) + l.quantity);
   return [...totals].map(([id, qty]) => `${id}:${qty}`).join(",");
 }
+
+/** Button text for each next step staff can take (the server decides which are allowed). */
+export const ACTION_LABEL: Partial<Record<OrderStatus, string>> = {
+  accepted: "Accept order",
+  preparing: "Start preparing",
+  ready: "Mark ready",
+  out_for_delivery: "Send out for delivery",
+  delivered: "Mark delivered",
+  picked_up: "Mark collected",
+  rejected: "Decline order",
+  cancelled: "Cancel order",
+};
+
+export const PAYMENT_LABEL: Record<string, string> = {
+  unpaid: "Not paid yet",
+  pending: "Waiting for payment",
+  paid: "Paid",
+  partially_refunded: "Partly refunded",
+  refunded: "Refunded",
+  failed: "Payment failed",
+};

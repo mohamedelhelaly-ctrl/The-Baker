@@ -10,6 +10,7 @@ from app.models.order import (  # noqa: F401
     FulfilmentType,
     Order,
     OrderItem,
+    OrderMessage,
     OrderStatus,
     OrderStatusEvent,
     PaymentMethod,

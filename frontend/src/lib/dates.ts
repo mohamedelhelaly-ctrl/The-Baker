@@ -40,3 +40,8 @@ export function formatSlotRange(startIso: string, endIso: string): string {
 export function formatDateTime(iso: string): string {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: STORE_TZ }).format(new Date(iso));
 }
+
+/** An ISO instant as a clock time in the bakery's timezone: "10:00 AM". */
+export function formatClock(iso: string): string {
+  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: STORE_TZ }).format(new Date(iso));
+}

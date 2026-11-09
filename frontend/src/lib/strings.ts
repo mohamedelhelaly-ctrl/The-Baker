@@ -2,7 +2,7 @@
 export const s = {
   brand: "The Baker",
   skipToContent: "Skip to main content",
-  nav: { home: "Home", menu: "Menu", manage: "Manage shop", signIn: "Sign in", register: "Create account", account: "My account", signOut: "Sign out" },
+  nav: { home: "Home", menu: "Menu", manage: "Manage shop", orders: "Orders", signIn: "Sign in", register: "Create account", account: "My account", signOut: "Sign out" },
   display: {
     button: "Display",
     textSize: "Text size",

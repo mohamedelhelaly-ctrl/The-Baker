@@ -13,7 +13,8 @@ Design docs: [requirements](docs/REQUIREMENTS_DRAFT.md) · [system design](docs/
 - **M2** schedule and delivery: done. Weekly opening hours, closed dates, fixed two-hour time slots with order limits, delivery zones with fees and minimum orders, and weekday rules per product. One rules engine answers "which dates and slots can this cart be booked for". Owners manage it all under **Manage shop**, staff can view it, and customers see opening hours, delivery fees and the earliest delivery or pickup date for each product.
 - **M3** cart, checkout and cash-on-delivery orders: done. Customers add products (with an optional cake message) to a cart, then check out in five steps (delivery or pickup, date and time, contact details, payment, review). The server prices everything, shows the delivery fee and total before ordering, reserves capacity so the last cake or slot can never be sold twice, and a retried or double-clicked submit never creates two orders. Guests get a private tracking link, signed-in customers see their own orders.
 - **M4** card payments and emails: done. Customers can pay by card (Paymob, Egypt, test mode) or cash. A card order holds its slot while the customer pays, the provider's signed webhook confirms it, unpaid orders expire after 35 minutes and free their capacity, and money that arrives too late is refunded automatically. Confirmation emails go through a retrying outbox (Resend in production). The owner switches payment methods on and off, edits the wording of every email with a live preview, and sees an email log with retry, all under **Manage shop, Payments and emails**.
-- Next: **M5**, the staff order queue (accept, reject, status updates, contact the customer). See [DESIGN.md §14](docs/DESIGN.md).
+- **M5** staff order queue: done. Staff and the owner open **Orders** to see the day's orders, filter by stage, delivery or pickup and search, then accept or decline (with a reason), move an order through preparing, ready and delivered or collected, mark it late, cancel it, and email the customer. Declining or cancelling a paid card order refunds it and frees the slot in the same step. A printable **Prep sheet** adds up what to bake that day and lists the messages to write on cakes.
+- Next: **M6**, customer tracking with change and cancel, refunds by policy, and account pages. See [DESIGN.md §14](docs/DESIGN.md).
 
 ## Run everything with Docker
 
@@ -31,7 +32,7 @@ docker compose up --build -d             # migrates, creates the first owner, se
 
 With `SEED_DEMO=true` in `backend/.env` (the example default), about 30 demo products plus default opening hours, two-hour slots and delivery zones are loaded on first start (each part only fills an empty table). Sign in as the owner (`FIRST_OWNER_EMAIL` / `FIRST_OWNER_PASSWORD`) and open **Manage shop** to edit them. Product photos are stored on a Docker volume locally.
 
-Until email sending is added (M4), password-reset links are written to the backend log: `docker compose logs backend | grep reset-password`.
+Without a Resend key (see below) emails, including password-reset links, are written to the backend log instead of being sent: `docker compose logs backend | grep reset-password`.
 
 ## Develop without rebuilding containers
 
