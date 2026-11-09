@@ -35,7 +35,7 @@ describe("home and menu", () => {
     mockFetch({ ...store, ...taxonomy, "/products": { body: page([cake, bread]) } });
     const { container } = renderApp(<App />, "/");
     expect(await screen.findByRole("heading", { level: 1, name: "Bakery in Cairo, baked to order" })).toBeInTheDocument();
-    expect(screen.getByAltText("Rye loaves on the stone floor of an open bread oven")).toBeInTheDocument();
+    expect(screen.getByAltText(/paper-craft baker in a white hat/)).toBeInTheDocument();
     const groupLink = await screen.findByRole("link", { name: "Celebration Cakes" });
     expect(groupLink).toHaveAttribute("href", "/menu?category=celebration-cakes");
     const group = groupLink.closest("section")!;

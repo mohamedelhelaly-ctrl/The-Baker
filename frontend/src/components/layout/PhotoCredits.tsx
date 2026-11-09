@@ -1,6 +1,5 @@
 /** The photographs on the home page are stand-ins (licensed, from Wikimedia Commons). One footer line, the list on open. */
 const HOME_PHOTOS = [
-  { title: "Rye loaves in a bread oven", by: "Johann Jaritz", licence: "CC BY-SA 3.0 AT", licenceUrl: "https://creativecommons.org/licenses/by-sa/3.0/at/deed.en/", page: "https://commons.wikimedia.org/wiki/File:Stabentheiner_Hof_Brotbackstube_Brotbacken_12062014_224.JPG" },
   { title: "Bread dough in proving baskets", by: "Wald1siedel", licence: "CC BY-SA 4.0", licenceUrl: "https://creativecommons.org/licenses/by-sa/4.0/", page: "https://commons.wikimedia.org/wiki/File:Bread_dough_in_baskets_01.JPG" },
 ] as const;
 

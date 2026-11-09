@@ -105,15 +105,15 @@ export default function HomePage() {
       <section className="hero" aria-labelledby="hero-h">
         <div className="overflow-hidden">
           <img
-            src="/photos/photo-m33603672-1800.webp"
-            srcSet="/photos/photo-m33603672-1200.webp 1200w, /photos/photo-m33603672-1800.webp 1800w, /photos/photo-m33603672-2400.webp 2400w"
+            src="/photos/baker-cover-1920.webp"
+            srcSet="/photos/baker-cover-800.webp 800w, /photos/baker-cover-1280.webp 1280w, /photos/baker-cover-1920.webp 1920w"
             sizes="(max-width: 639px) 189vw, 100vw"
-            width={1800}
-            height={1192}
-            alt="Rye loaves on the stone floor of an open bread oven"
+            width={1920}
+            height={1076}
+            alt="A paper-craft baker in a white hat setting out pastries at a counter, with shelves of cakes and bread behind"
             fetchPriority="high"
-            data-source="stand-in"
-            className="enter-settle block h-[min(480px,53svh)] w-full object-cover max-sm:h-[min(488px,48svh)]"
+            data-source="client"
+            className="enter-settle block h-[min(480px,53svh)] w-full object-cover object-[50%_62%] max-sm:h-[min(488px,48svh)]"
           />
         </div>
         <div className="wrap page grid gap-x-10 gap-y-6 pb-12 pt-10 sm:grid-cols-2 sm:pb-16">
