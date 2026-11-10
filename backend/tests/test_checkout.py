@@ -749,3 +749,23 @@ async def test_tracking_tokens_are_stable_per_order_and_different_between_orders
     assert not verify_tracking_token("BK-AAAAAA", None) and not verify_tracking_token(
         "BK-AAAAAA", ""
     )
+
+
+async def test_a_message_is_kept_only_on_cakes(client, owner):
+    z, cake, slots = await shop(client, owner)
+    bread_cat = await make_category(client, owner, "Bread")
+    bread = await make_product(
+        client,
+        owner,
+        bread_cat["id"],
+        "Sourdough Loaf",
+        lead_time_hours=0,
+        variants=[{"name": "Loaf", "price": 8000}],
+    )
+    items = [
+        {"variant_id": cake["variants"][0]["id"], "quantity": 1, "inscription": "Happy Birthday"},
+        {"variant_id": bread["variants"][0]["id"], "quantity": 1, "inscription": "Happy Birthday"},
+    ]
+    with at(MON):
+        q = await quote(client, items=items)
+    assert [line["inscription"] for line in q["lines"]] == ["Happy Birthday", None]

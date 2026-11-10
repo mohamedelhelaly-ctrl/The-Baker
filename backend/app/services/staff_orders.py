@@ -116,6 +116,10 @@ async def _close(db: AsyncSession, order: Order, to: OrderStatus, reason: str, a
     )
 
 
+# Moving an order to these steps is internal bookkeeping; the customer is not emailed.
+SILENT_STATUSES = (OrderStatus.accepted, OrderStatus.preparing)
+
+
 async def change_order_status(
     db: AsyncSession, order_id: int, to: OrderStatus, actor: User, reason: str | None = None
 ) -> Order:
@@ -141,13 +145,14 @@ async def change_order_status(
         if to in FINISHED_STATUSES:
             order.is_delayed = False
             order.delay_note = None
-        await enqueue(
-            db,
-            key="order_accepted" if to == OrderStatus.accepted else "status_changed",
-            to_email=order.contact_email,
-            context=order_context(order, {"status_text": STATUS_TEXT[to]}),
-            order_id=order.id,
-        )
+        if to not in SILENT_STATUSES:
+            await enqueue(
+                db,
+                key="status_changed",
+                to_email=order.contact_email,
+                context=order_context(order, {"status_text": STATUS_TEXT[to]}),
+                order_id=order.id,
+            )
     await db.commit()
     notifier.wake()
     return await _reload(db, order_id)

@@ -9,7 +9,13 @@ from app.models.order import Order, OrderItem, OrderStatus
 # Unpaid card orders are not the bakery's to act on yet, so the staff views never include them.
 STAFF_HIDDEN = (OrderStatus.pending_payment,)
 # Orders whose items still need to be (or have been) made on the day: everything except dead orders.
-PREP_EXCLUDED = (OrderStatus.pending_payment, OrderStatus.rejected, OrderStatus.cancelled)
+PREP_EXCLUDED = (
+    OrderStatus.pending_payment,
+    OrderStatus.rejected,
+    OrderStatus.cancelled,
+    OrderStatus.delivered,
+    OrderStatus.picked_up,
+)
 
 
 def _like(text: str) -> str:

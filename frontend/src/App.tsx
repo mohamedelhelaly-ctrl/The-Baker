@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { Route, Routes } from "react-router";
+import { lazy, Suspense, useEffect } from "react";
+import { Route, Routes, useLocation } from "react-router";
 import { GuestOnly } from "./components/auth/GuestOnly";
 import { RequireAuth } from "./components/auth/RequireAuth";
 import { RequireModule } from "./components/auth/RequireModule";
@@ -39,10 +39,20 @@ const StaffOrderPage = lazy(() => import("./pages/staff/StaffOrderPage"));
 const StaffPrepSheetPage = lazy(() => import("./pages/staff/StaffPrepSheetPage"));
 const NotFoundPage = lazy(() => import("./pages/errors/NotFoundPage"));
 
+// A new page starts at the top, not wherever the last one was scrolled to.
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 // All routes and guards live here: one <RequireModule> group per permission module.
 export default function App() {
   return (
     <Suspense fallback={<Loading />}>
+      <ScrollToTop />
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />

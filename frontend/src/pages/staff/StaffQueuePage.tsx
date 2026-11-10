@@ -32,7 +32,7 @@ function badgeKind(status: OrderStatus): "ok" | "warn" | "off" {
 export default function StaffQueuePage() {
   usePageTitle("Order queue");
   const fromLink = useSearchParams()[0].get("q") ?? ""; // e.g. from the prep sheet: look up one order on any day
-  const [day, setDay] = useState(fromLink ? "" : todayIso());
+  const [day, setDay] = useState("");
   const [tab, setTab] = useState("");
   const [fulfilment, setFulfilment] = useState("");
   const [search, setSearch] = useState(fromLink);

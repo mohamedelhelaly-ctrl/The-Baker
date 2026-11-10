@@ -6,7 +6,7 @@ Online ordering for a fictional Cairo bakery. Customers browse and order cakes a
 
 **Stack:** FastAPI + SQLAlchemy (async) + PostgreSQL, React + TypeScript + Vite + Tailwind. Monorepo, Docker Compose locally, Railway (API + database) and Vercel (web) for the demo, Cloudflare R2 for photos, Paymob for card payments, Brevo for email.
 
-Design docs: [requirements](docs/REQUIREMENTS_DRAFT.md) · [system design](docs/DESIGN.md) · [accessibility audit](docs/ACCESSIBILITY.md) · [tests explained](docs/TESTS.md) · [architecture conventions](docs/ARCHITECTURE_OVERVIEW.md)
+Design docs: [requirements](docs/REQUIREMENTS_DRAFT.md) · [system design](docs/DESIGN.md) · [accessibility audit](docs/ACCESSIBILITY.md) · [tests explained](docs/TESTS.md) · [acceptance tests](docs/UAT.md) · [architecture conventions](docs/ARCHITECTURE_OVERVIEW.md)
 
 ## What it does
 

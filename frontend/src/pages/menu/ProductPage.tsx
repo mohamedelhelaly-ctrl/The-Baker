@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { takesInscription } from "../../lib/cake";
 import { Link, useParams } from "react-router";
 import { useApi } from "../../hooks/useApi";
 import { useCart } from "../../lib/cart";
@@ -42,6 +43,7 @@ function ProductView({ product }: { product: ProductDetail }) {
   const [photo, setPhoto] = useState(0);
   const variant = product.variants.find((v) => v.id === variantId) ?? product.variants[0];
   const current = product.images[photo];
+  const isCake = takesInscription(product.name, product.category.name);
   // Lead time is per product, so the first size answers for all sizes.
   const first = product.variants[0]?.id;
   const delivery = useApi<DatesResponse>(`/availability/dates?fulfilment=delivery&days=60&items=${first}`);
@@ -134,12 +136,14 @@ function ProductView({ product }: { product: ProductDetail }) {
               e.preventDefault();
               if (!variant) return;
               const qty = Math.min(100, Math.max(1, Math.floor(Number(quantity)) || 1));
-              cart.add(variant.id, qty, inscription);
+              cart.add(variant.id, qty, isCake ? inscription : "");
               setQuantity("1");
               setAdded(`Added ${qty} × ${product.name} (${variant.name}) to your cart.`);
             }}
           >
-            <TextField label="Message on the cake (optional)" hint="For example “Happy Birthday Sara”. Up to 80 characters." maxLength={80} value={inscription} onChange={(e) => setInscription(e.target.value)} />
+            {isCake && (
+              <TextField label="Message on the cake (optional)" hint="For example “Happy Birthday Sara”. Up to 80 characters." maxLength={80} value={inscription} onChange={(e) => setInscription(e.target.value)} />
+            )}
             <div className="flex items-end gap-3">
               <div className="w-24 shrink-0">
                 <TextField label="Quantity" type="number" min={1} max={100} inputMode="numeric" value={quantity} onChange={(e) => setQuantity(e.target.value)} />

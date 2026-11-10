@@ -226,3 +226,5 @@ logs/
 .claude/
 
 .taste-skill/
+clear_orders.sql
+

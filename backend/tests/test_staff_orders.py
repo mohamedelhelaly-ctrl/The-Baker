@@ -149,7 +149,9 @@ async def test_a_delivery_order_goes_through_every_stage(client, owner, staff, e
     ]
     await emails.flush()
     subjects = [m["subject"] for m in emails.sent]
-    assert any("is accepted" in s for s in subjects)
+    # Accepting and starting to prepare are internal steps: the customer is not emailed for them.
+    assert not any("accepted" in s.lower() or "preparing" in s.lower() for s in subjects)
+    assert any("Ready" in s for s in subjects)
     assert any("Out for delivery" in s for s in subjects) and any(
         "Delivered" in s for s in subjects
     )
@@ -396,3 +398,26 @@ async def test_the_prep_sheet_adds_up_a_day(client, owner, staff):
     ]
     empty = (await client.get(f"{S}/prep-sheet", params={"date": str(MON)}, headers=staff)).json()
     assert empty["lines"] == [] and empty["total_units"] == 0
+
+
+async def test_finished_orders_leave_the_prep_sheet(client, owner, staff):
+    z, p, slots = await shop(client, owner)
+    small = p["variants"][0]["id"]
+    with at(MON):
+        a = await place(client, order_body(small, slots[0], qty=2, zone_id=z["id"]))
+        b = await place(client, order_body(small, slots[1], qty=1, zone_id=z["id"]))
+    ida, idb = await order_id(a.json()["code"]), await order_id(b.json()["code"])
+    for oid in (ida, idb):
+        await go(client, staff, oid, "accepted")
+        for to in ("preparing", "ready", "out_for_delivery"):
+            await go(client, staff, oid, to)
+
+    def sheet():
+        return client.get(f"{S}/prep-sheet", params={"date": str(TUE)}, headers=staff)
+
+    assert (await sheet()).json()["total_units"] == 3  # both still to be made or on the road
+    assert (await go(client, staff, ida, "delivered")).status_code == 200
+    now = (await sheet()).json()
+    assert now["order_count"] == 1 and now["total_units"] == 1  # the delivered order is gone
+    assert (await go(client, staff, idb, "delivered")).status_code == 200
+    assert (await sheet()).json()["lines"] == []

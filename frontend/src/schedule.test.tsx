@@ -47,9 +47,16 @@ describe("owner schedule page", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Schedule" })).toBeInTheDocument();
     expect(await screen.findByLabelText("Monday opens")).toHaveValue("09:00");
     expect(screen.getByLabelText("Friday opens")).toHaveValue("13:00");
+    const user = userEvent.setup();
+    const day = await screen.findByLabelText("Show day");
+    await user.selectOptions(day, "0");
     expect(await screen.findByRole("heading", { level: 3, name: "Monday" })).toBeInTheDocument();
-    const friday = (await screen.findByRole("heading", { level: 3, name: "Friday" })).parentElement!;
-    expect(within(friday).getByText(/Pickup only/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Max orders, Friday/)).not.toBeInTheDocument(); // Friday's slots are not listed on Monday
+    await user.selectOptions(day, "4");
+    await screen.findByRole("heading", { level: 3, name: "Friday" });
+    expect(await screen.findByLabelText(/^Max orders, Friday/)).toBeInTheDocument();
+    await user.selectOptions(day, "2");
+    expect(screen.getByText(/No time slots on Wednesday/)).toBeInTheDocument();
     expect(await screen.findByText(/^\s*· Holiday\s*$/)).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -85,6 +92,7 @@ describe("owner schedule page", () => {
     });
     renderApp(<App />, "/admin/schedule");
     const user = userEvent.setup();
+    await user.selectOptions(await screen.findByLabelText("Show day"), "0");
     await user.click(await screen.findByRole("button", { name: "Add time slot" }));
     expect(await screen.findByText(/This overlaps the existing slot/)).toBeInTheDocument();
     const body = JSON.parse(sent(calls, "POST", "/admin/time-slots")[0].init!.body as string);
@@ -95,6 +103,7 @@ describe("owner schedule page", () => {
     const calls = signIn(owner, { "PATCH /admin/time-slots/1": { body: slotList[0] }, "DELETE /admin/time-slots/1": { status: 204, body: null } });
     renderApp(<App />, "/admin/schedule");
     const user = userEvent.setup();
+    await user.selectOptions(await screen.findByLabelText("Show day"), "0");
     const max = await screen.findByLabelText("Max orders, Monday 10:00 AM to 12:00 PM");
     await user.clear(max);
     await user.type(max, "9");

@@ -39,6 +39,16 @@ describe("add to cart", () => {
     expect(JSON.parse(localStorage.getItem("baker.cart")!)).toEqual([{ variantId: 11, quantity: 2, inscription: "Happy Birthday" }]);
   });
 
+  it("offers a message on cakes only", async () => {
+    mockFetch({ ...store, "/products/triple-chocolate-cake": { body: detail }, "/products/sourdough": { body: { ...detail, name: "Sourdough", slug: "sourdough", category: { id: 2, name: "Breads", slug: "breads" } } }, "/availability/dates": { body: datesBody } });
+    const cake = renderApp(<App />, "/products/triple-chocolate-cake");
+    expect(await screen.findByLabelText("Message on the cake (optional)")).toBeInTheDocument();
+    cake.unmount();
+    renderApp(<App />, "/products/sourdough");
+    await screen.findByRole("button", { name: "Add to cart" });
+    expect(screen.queryByLabelText("Message on the cake (optional)")).not.toBeInTheDocument();
+  });
+
   it("merges the same item and message, but keeps different messages on separate lines", async () => {
     mockFetch({ ...store, "/products/triple-chocolate-cake": { body: detail }, "/availability/dates": { body: datesBody } });
     renderApp(<App />, "/products/triple-chocolate-cake");

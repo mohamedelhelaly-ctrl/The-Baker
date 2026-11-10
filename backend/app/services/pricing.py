@@ -5,6 +5,7 @@ of `Problem`s tagged with the checkout step they belong to, so the UI can show e
 can be fixed. `ready` is true only when the order could be placed right now.
 """
 
+import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
@@ -41,6 +42,14 @@ class Quote:
     slot: TimeSlot | None = None
     slot_option: SlotOption | None = None
     quantities: dict[int, int] = field(default_factory=dict)
+
+
+_CAKE = re.compile(r"\bcakes?\b", re.IGNORECASE)
+
+
+def takes_inscription(product_name: str, category_name: str) -> bool:
+    """A message can be written on cakes only (not cupcakes, bread or pastries)."""
+    return bool(_CAKE.search(product_name) or _CAKE.search(category_name))
 
 
 async def _load_variants(db: AsyncSession, ids: set[int]):
@@ -122,7 +131,9 @@ async def build_quote(
                 unit_price=variant.price,
                 quantity=cart_line.quantity,
                 line_total=total if usable else 0,
-                inscription=cart_line.inscription,
+                inscription=cart_line.inscription
+                if takes_inscription(product.name, category.name)
+                else None,
                 image=ImageRead.model_validate(product.images[0]) if product.images else None,
                 available=usable,
                 message=None if usable else f"{product.name} is no longer available.",

@@ -72,7 +72,7 @@ describe("order queue", () => {
     renderApp(<App />, "/staff/orders");
     const user = userEvent.setup();
     await screen.findByRole("link", { name: /BK-ABC234/ });
-    expect(calls.some((c) => /\/staff\/orders\?.*date=\d{4}-\d{2}-\d{2}/.test(c.url))).toBe(true); // starts on today
+    expect(calls.some((c) => /\/staff\/orders\?/.test(c.url) && !c.url.includes("date="))).toBe(true); // starts on all days
     await user.click(screen.getByRole("button", { name: /^Accepted/ }));
     expect(screen.getByRole("button", { name: /^Accepted/ })).toHaveAttribute("aria-pressed", "true");
     await waitFor(() => expect(calls.some((c) => c.url.includes("status=accepted"))).toBe(true));

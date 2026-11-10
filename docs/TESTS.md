@@ -151,6 +151,7 @@ cd frontend && npm test
 | concurrent duplicate submissions create one order | Five identical requests at the same instant create exactly one order |
 | last unit goes to exactly one of many simultaneous orders | With one cake left and many buyers at once, only one succeeds |
 | a slot never takes more orders than its limit | The same for time slots |
+| a message is kept only on cakes | A message sent with bread or cupcakes is dropped from the quote and the order |
 | capacity is shared across sizes and checked in units | A product's daily limit counts every size together |
 | capacity is per day | Booking Tuesday does not use up Wednesday |
 | releasing an order gives the capacity back | A cancelled order frees its cake units and its slot |
@@ -267,6 +268,7 @@ cd frontend && npm test
 | cash cannot be recorded on a card order | Card orders cannot be marked as cash-paid |
 | cash cannot be recorded on a rejected order | Nor dead orders |
 | the prep sheet adds up a day | Quantities per product and size and the cake messages, excluding declined orders |
+| finished orders leave the prep sheet | Delivered and picked-up orders are no longer made, so they drop off the day's list |
 
 ## `test_customer_orders.py`: policy, cancel, change (27)
 
@@ -401,6 +403,7 @@ The browser test environment cannot measure colours, so the design colours thems
 | saves opening hours as seven day entries | Saving sends all seven days |
 | refuses opening times that are not before closing times, without calling the API | The browser catches impossible hours |
 | adds a time slot and shows the server's overlap message | Overlaps are explained |
+| (the slot list shows one day at a time, chosen from a dropdown) | Other days' slots are hidden |
 | edits a slot's capacity and asks before deleting | Editing works; deleting asks first |
 | adds and removes closed dates | Holiday management |
 | staff can see the schedule but not change it, and do not see catalog links | Staff see a read-only schedule |

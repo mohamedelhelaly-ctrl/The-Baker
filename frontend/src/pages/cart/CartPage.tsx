@@ -50,7 +50,9 @@ export default function CartPage() {
         <ul className="card divide-y divide-hairline px-5">
           {cart.lines.map((line) => {
             const key = lineKey(line);
-            const q = quote?.lines.find((l) => l.variant_id === line.variantId && (l.inscription ?? "") === line.inscription);
+            const q =
+              quote?.lines.find((l) => l.variant_id === line.variantId && (l.inscription ?? "") === line.inscription) ??
+              quote?.lines.find((l) => l.variant_id === line.variantId && !l.inscription); // a saved message on a non-cake is dropped by the server
             const name = q ? `${q.product_name}${q.variant_name ? ` (${q.variant_name})` : ""}` : "this item";
             return (
               <li key={key} className="grid grid-cols-[5rem_1fr] gap-x-4 gap-y-2 py-5 sm:grid-cols-[6rem_1fr_auto]">
@@ -66,9 +68,9 @@ export default function CartPage() {
                     )}
                   </h2>
                   {q?.variant_name && <p className="text-muted">{q.variant_name}</p>}
-                  {line.inscription && (
+                  {q?.inscription && (
                     <p className="mt-1 text-sm">
-                      <span className="font-semibold">Message on the cake:</span> “{line.inscription}”
+                      <span className="font-semibold">Message on the cake:</span> “{q.inscription}”
                     </p>
                   )}
                   {q && !q.available && (

@@ -107,6 +107,8 @@ function HoursForm({ initial, canEdit, onSaved }: { initial: HoursEntry[]; canEd
 function SlotsSection({ canEdit }: { canEdit: boolean }) {
   const slots = useApi<TimeSlot[]>("/admin/time-slots");
   const [msg, setMsg] = useState<Msg>(null);
+  const [weekday, setWeekday] = useState(() => (new Date().getDay() + 6) % 7); // Monday = 0, starting on today
+  const list = slots.data?.filter((s) => s.weekday === weekday) ?? [];
 
   async function run(action: () => Promise<unknown>, success: string) {
     try {
@@ -129,22 +131,27 @@ function SlotsSection({ canEdit }: { canEdit: boolean }) {
       <div aria-live="polite">{msg && <Alert kind={msg.kind}>{msg.text}</Alert>}</div>
 
       {slots.data && slots.data.length === 0 && <p className="mb-4">No time slots yet, so customers cannot order for any day.</p>}
-      {WEEKDAYS.map((day, d) => {
-        const list = slots.data?.filter((s) => s.weekday === d) ?? [];
-        if (list.length === 0) return null;
-        return (
-          <div key={day} className="mb-5">
-            <h3 className="mb-2 text-lg font-bold">{day}</h3>
-            <ul className="grid gap-2">
-              {list.map((slot) => (
-                <SlotRow key={`${slot.id}-${slot.max_orders}-${slot.is_active}`} slot={slot} canEdit={canEdit} run={run} />
-              ))}
-            </ul>
-          </div>
-        );
-      })}
+      <div className="mb-4 max-w-xs">
+        <SelectField label="Show day" value={String(weekday)} onChange={(e) => setWeekday(Number(e.target.value))}>
+          {WEEKDAYS.map((name, d) => (
+            <option key={name} value={d}>
+              {name} ({slots.data?.filter((s) => s.weekday === d).length ?? 0})
+            </option>
+          ))}
+        </SelectField>
+      </div>
+      <h3 className="mb-2 text-lg font-bold">{WEEKDAYS[weekday]}</h3>
+      {list.length === 0 ? (
+        <p className="mb-4 text-muted">No time slots on {WEEKDAYS[weekday]}, so customers cannot order for that day.</p>
+      ) : (
+        <ul className="grid gap-2">
+          {list.map((slot) => (
+            <SlotRow key={`${slot.id}-${slot.max_orders}-${slot.is_active}`} slot={slot} canEdit={canEdit} run={run} />
+          ))}
+        </ul>
+      )}
 
-      {canEdit && <AddSlot run={run} />}
+      {canEdit && <AddSlot key={weekday} weekday={weekday} run={run} />}
     </section>
   );
 }
@@ -193,8 +200,8 @@ function SlotRow({ slot, canEdit, run }: { slot: TimeSlot; canEdit: boolean; run
   );
 }
 
-function AddSlot({ run }: { run: (a: () => Promise<unknown>, s: string) => Promise<boolean> }) {
-  const [f, setF] = useState({ weekday: "0", start: "10:00", end: "12:00", type: "both" as SlotFulfilment, max: "6" });
+function AddSlot({ weekday, run }: { weekday: number; run: (a: () => Promise<unknown>, s: string) => Promise<boolean> }) {
+  const [f, setF] = useState({ weekday: String(weekday), start: "10:00", end: "12:00", type: "both" as SlotFulfilment, max: "6" });
   return (
     <form
       noValidate

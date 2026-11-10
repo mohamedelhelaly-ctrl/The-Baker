@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { bread, cake, categories, customer, occasions, owner, page, staff } from "./test/fixtures";
 import { mockFetch, renderApp } from "./test/render";
@@ -229,5 +229,19 @@ describe("shared look", () => {
     expect(items[0]).toHaveTextContent("Received (done)");
     expect(items[2]).toHaveTextContent("Being prepared (current)");
     expect(items[4]).toHaveTextContent("Picked up (not yet)");
+  });
+});
+
+describe("new pages start at the top", () => {
+  it("scrolls to the top when the page changes", async () => {
+    const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    mockFetch({ ...store });
+    renderApp(<App />, "/");
+    const user = userEvent.setup();
+    await screen.findByRole("heading", { level: 1 });
+    scroll.mockClear();
+    await user.click(screen.getAllByRole("link", { name: /^menu$/i })[0]);
+    await waitFor(() => expect(scroll).toHaveBeenCalledWith(0, 0));
+    scroll.mockRestore();
   });
 });
