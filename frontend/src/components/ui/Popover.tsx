@@ -36,7 +36,9 @@ export function Popover({ button, label, children, align = "end", width = "w-72"
     // Following a link, or pressing something marked data-close, inside the panel closes it.
     const panel = panelRef.current;
     const onPanelClick = (e: MouseEvent) => {
-      if ((e.target as HTMLElement).closest("a, [data-close]")) setOpen(false);
+      // Close after the click has been handled: closing at once removes the button before its own handler runs
+      // (a real browser then drops the click, so "Sign out" did nothing).
+      if ((e.target as HTMLElement).closest("a, [data-close]")) window.setTimeout(() => setOpen(false), 0);
     };
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onClick);
