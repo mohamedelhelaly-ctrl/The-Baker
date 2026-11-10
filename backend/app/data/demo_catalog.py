@@ -23,7 +23,7 @@ PRODUCTS = [
         "Flour, cocoa, dark chocolate, eggs, butter, sugar, cream",
         CAKE_SIZES,
         ["Birthday", "Corporate"],
-        True,
+        False,
         48,
     ),
     (
@@ -33,7 +33,7 @@ PRODUCTS = [
         "Flour, cocoa, buttermilk, eggs, cream cheese, butter, sugar",
         CAKE_SIZES,
         ["Birthday", "Wedding"],
-        True,
+        False,
         48,
     ),
     (
@@ -73,7 +73,7 @@ PRODUCTS = [
         "Flour, pistachios, rose water, eggs, cream, butter, sugar",
         CAKE_SIZES,
         ["Wedding", "Ramadan & Eid"],
-        True,
+        False,
         72,
     ),
     (
@@ -283,7 +283,7 @@ PRODUCTS = [
         "Flour, ghee, sesame, dates, sugar",
         [("500 g", 260), ("1 kg", 480)],
         ["Ramadan & Eid"],
-        True,
+        False,
         48,
     ),
     (
@@ -293,7 +293,7 @@ PRODUCTS = [
         "Kataifi, butter, cream, sugar syrup, pistachios",
         [("Small tray", 320), ("Large tray", 590)],
         ["Ramadan & Eid"],
-        True,
+        False,
         24,
     ),
     (

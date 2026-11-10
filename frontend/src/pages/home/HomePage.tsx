@@ -1,59 +1,23 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router";
+import { Link } from "react-router";
 import { buttonClass } from "../../components/ui/buttonClass";
 import { useApi } from "../../hooks/useApi";
 import { usePageTitle } from "../../hooks/usePageTitle";
-import { WEEKDAYS, formatTime, hhmm } from "../../lib/dates";
-import { openNowLine, todayEntry, todayLine } from "../../lib/hours";
-import { useMoney, useStore } from "../../lib/store";
-import type { Category, Page, ProductListItem } from "../../lib/types";
-
-const GROUPS = 3;
-const ROWS = 5;
-
-/** One group of the menu: a label, then up to five products with their "from" price. */
-function Group({ category }: { category: Category }) {
-  const money = useMoney();
-  const products = useApi<Page<ProductListItem>>(`/products?category=${category.slug}&sort=featured&page_size=${ROWS}`);
-  return (
-    <section aria-labelledby={`g-${category.slug}`}>
-      <h3 id={`g-${category.slug}`} className="t-label mb-3">
-        <Link to={`/menu?category=${category.slug}`} className="link-bare">
-          {category.name}
-        </Link>
-      </h3>
-      <ul className="rows">
-        {products.data?.items.slice(0, ROWS).map((p) => (
-          <li key={p.id}>
-            <Link to={`/products/${p.slug}`} className="link-bare">
-              {p.name}
-            </Link>
-            <span className="tnum shrink-0 text-muted">{money(p.price_from).replace(/\.00$/, "")}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
+import { formatTime, hhmm } from "../../lib/dates";
+import { todayEntry } from "../../lib/hours";
+import { useStore } from "../../lib/store";
+import type { Page, ProductListItem } from "../../lib/types";
 
 export default function HomePage() {
   const store = useStore();
   usePageTitle("Bakery in Cairo, baked to order");
-  const categories = useApi<Category[]>("/categories");
-  const { hash } = useLocation();
+  const favourites = useApi<Page<ProductListItem>>("/products?sort=featured&page_size=4");
   const heroButton = useRef<HTMLAnchorElement>(null);
   const figure = useRef<HTMLElement>(null);
   const [arrived, setArrived] = useState(false);
   const first = todayEntry(store.opening_hours);
   const openFrom = first && !first.is_closed ? formatTime(hhmm(first.opens_at)) : null;
   const sub = openFrom ? `Cakes, pastries and bread from ${openFrom}, for delivery or pickup.` : "Cakes, pastries and bread, for delivery or pickup.";
-  const openNow = openNowLine(store.opening_hours);
-  const where = store.address ?? "Cairo, Egypt";
-
-  // A link to /#visit lands on the visit block.
-  useEffect(() => {
-    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
-  }, [hash]);
 
   // The phone's action bar shows once the hero's button has scrolled away.
   useEffect(() => {
@@ -131,73 +95,51 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="shop" aria-labelledby="shop-h" className="wrap page py-16 sm:py-24">
-        <h2 id="shop-h" className="mb-10 font-display text-2xl sm:text-[32px] sm:leading-10">
-          Menu and prices
-        </h2>
-        <div className="grid items-start gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-          {categories.data?.slice(0, GROUPS).map((c) => (
-            <Group key={c.id} category={c} />
-          ))}
-          <figure ref={figure} className="develop m-0 overflow-hidden" data-state={arrived ? "arrived" : "waiting"} data-moment="picture-develops">
-            <Link to="/menu?category=breads" aria-label="See the breads" className="group block overflow-hidden">
-              <img
-                src="/photos/photo-m37164269-1200.webp"
-                width={1200}
-                height={896}
-                loading="lazy"
-                alt="Rye dough rising in woven baskets on a wooden table"
-                data-source="stand-in"
-                className="aspect-square w-full object-cover transition-transform duration-[600ms] group-hover:scale-[1.03]"
-              />
-            </Link>
-          </figure>
+      <section aria-labelledby="fav-h" className="page py-16 sm:py-24">
+        <div className="mb-8 flex items-end justify-between gap-4">
+          <h2 id="fav-h" className="font-display text-2xl sm:text-[32px] sm:leading-10">
+            Our favourites
+          </h2>
+          <Link to="/menu" className="link">
+            See the whole menu
+          </Link>
         </div>
-
-        <div id="visit" className="mt-20 grid gap-x-6 gap-y-10 border-t border-hairline pt-12 md:grid-cols-3">
-          <div>
-            <h3 className="mb-3 font-display text-2xl">Visit</h3>
-            <p className="text-xl leading-[30px]">{where}</p>
-            {store.pickup_location && <p className="mt-2 text-muted">Collect from: {store.pickup_location}</p>}
-            {store.address && (
-              <p className="mt-3">
-                <a className="link" href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(store.address)}`} target="_blank" rel="noreferrer">
-                  Get directions
-                </a>
-              </p>
-            )}
-          </div>
-          <div>
-            <h3 className="mb-3 font-display text-2xl">Opening hours</h3>
-            {openNow && <p className="mb-2 font-medium">{openNow}</p>}
-            {store.opening_hours.length > 0 ? (
-              <dl className="grid grid-cols-[7rem_1fr] gap-y-1">
-                {[...store.opening_hours]
-                  .sort((a, b) => a.weekday - b.weekday)
-                  .map((h) => {
-                    const isToday = todayEntry(store.opening_hours)?.weekday === h.weekday;
-                    return (
-                      <div key={h.weekday} className={`contents ${isToday ? "font-medium" : ""}`}>
-                        <dt>{WEEKDAYS[h.weekday]}</dt>
-                        <dd className="tnum">{h.is_closed ? "Closed" : `${formatTime(hhmm(h.opens_at))} to ${formatTime(hhmm(h.closes_at))}`}</dd>
-                      </div>
-                    );
-                  })}
-              </dl>
-            ) : (
-              <p className="text-muted">Hours are set by the bakery.</p>
-            )}
-          </div>
-          <div>
-            <h3 className="mb-3 font-display text-2xl">Delivery and pickup</h3>
-            <p>{todayLine(store.opening_hours) ? "Order ahead for a delivery or pickup day and time you choose." : "Order ahead for a day and time you choose."}</p>
-            {store.pickup_instructions && <p className="mt-2 text-muted">{store.pickup_instructions}</p>}
-            <p className="mt-3">
-              <Link to="/delivery" className="link">
-                Delivery areas and fees
+        <ul className="grid grid-cols-2 gap-x-6 gap-y-8 lg:grid-cols-4">
+          {favourites.data?.items.slice(0, 4).map((p) => (
+            <li key={p.id}>
+              <Link to={`/products/${p.slug}`} className="group block">
+                <span className="lift block overflow-hidden border border-hairline bg-tint">
+                  {p.image && <img src={p.image.url} alt={p.image.alt_text} loading="lazy" width={600} height={600} className="aspect-square w-full object-cover transition-transform duration-[600ms] group-hover:scale-[1.03]" />}
+                </span>
+                <span className="link-bare mt-3 inline-block font-display text-xl leading-snug">{p.name}</span>
               </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section id="about" aria-labelledby="about-h" className="band">
+        <div className="page grid items-center gap-x-10 gap-y-8 py-16 sm:py-24 md:grid-cols-2">
+          <div>
+            <h2 id="about-h" className="mb-5 font-display text-2xl sm:text-[32px] sm:leading-10">
+              About us
+            </h2>
+            <p className="font-display text-2xl leading-snug sm:text-[28px]">A little bakery, a lot of love, and flavors worth coming back for.</p>
+            <p className="mt-5 max-w-prose text-lg">
+              We are a small bakery in Cairo. Everything is baked to order, so your cake or loaf comes out of the oven close to the day you collect it or we deliver it. We keep the menu short and bake it well: cakes for birthdays and weddings, pastries for the morning, and bread for the table.
             </p>
           </div>
+          <figure ref={figure} className="develop m-0 overflow-hidden" data-state={arrived ? "arrived" : "waiting"} data-moment="picture-develops">
+            <img
+              src="/photos/baker-icon.webp"
+              width={772}
+              height={900}
+              loading="lazy"
+              alt="A smiling baker in a chef's hat holding a loaf of bread on a board, drawn in brown ink"
+              data-source="client"
+              className="mx-auto block h-auto max-h-[460px] w-full object-contain mix-blend-multiply"
+            />
+          </figure>
         </div>
       </section>
     </>

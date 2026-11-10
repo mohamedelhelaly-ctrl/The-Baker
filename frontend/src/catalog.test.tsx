@@ -31,20 +31,23 @@ describe("money helpers", () => {
 });
 
 describe("home and menu", () => {
-  it("home is a photograph, the menu groups with prices, and the visit details, with no axe violations", async () => {
+  it("home is a cover picture, four favourites, about us and the visit details, with no axe violations", async () => {
     mockFetch({ ...store, ...taxonomy, "/products": { body: page([cake, bread]) } });
     const { container } = renderApp(<App />, "/");
     expect(await screen.findByRole("heading", { level: 1, name: "Bakery in Cairo, baked to order" })).toBeInTheDocument();
     expect(screen.getByAltText(/paper-craft baker in a white hat/)).toBeInTheDocument();
-    const groupLink = await screen.findByRole("link", { name: "Celebration Cakes" });
-    expect(groupLink).toHaveAttribute("href", "/menu?category=celebration-cakes");
-    const group = groupLink.closest("section")!;
-    const product = await within(group).findByRole("link", { name: "Triple Chocolate Cake" });
-    expect(product).toHaveAttribute("href", "/products/triple-chocolate-cake");
-    expect(within(group).getByText("EGP 650")).toBeInTheDocument(); // the price, whole pounds, beside the name
-    expect(screen.getByRole("heading", { level: 2, name: "Menu and prices" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 3, name: "Visit" })).toBeInTheDocument();
-    expect(screen.getByText("Photographs via Wikimedia Commons")).toBeInTheDocument();
+    const favourites = (await screen.findByRole("heading", { level: 2, name: "Our favourites" })).closest("section")!;
+    const tile = await within(favourites).findByRole("link", { name: /Triple Chocolate Cake/ });
+    expect(tile).toHaveAttribute("href", "/products/triple-chocolate-cake");
+    expect(within(favourites).queryByText(/EGP/)).not.toBeInTheDocument(); // tiles show no price list
+    expect(within(favourites).getByRole("link", { name: "See the whole menu" })).toHaveAttribute("href", "/menu");
+    const about = screen.getByRole("heading", { level: 2, name: "About us" }).closest("section")!;
+    expect(within(about).getByText("A little bakery, a lot of love, and flavors worth coming back for.")).toBeInTheDocument();
+    expect(within(about).getByText(/We are a small bakery in Cairo/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Visit" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Menu and prices" })).not.toBeInTheDocument();
+    expect(within(about).getByAltText(/smiling baker in a chef.s hat/)).toBeInTheDocument();
+    expect(screen.queryByText(/Photographs via/)).not.toBeInTheDocument(); // no stock photographs left, so no credit line
     expect(await axe(container)).toHaveNoViolations();
   });
 

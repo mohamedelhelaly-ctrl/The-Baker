@@ -170,14 +170,14 @@ describe("customers see the shop details", () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole("radio", { name: /Pickup from the bakery/ }));
     expect(screen.getByText(/Where to collect:/)).toBeInTheDocument();
-    expect(screen.getByText("Ring the bell.")).toBeInTheDocument();
+    expect(within(screen.getByRole("main")).getByText("Ring the bell.")).toBeInTheDocument();
   });
 
   it("shows the pickup place on the order page", async () => {
     mockFetch({ "/store": { body: storeBody(details) }, "/orders/BK-ABC234": { body: { ...changeable, fulfilment_type: "pickup", zone_name: null, delivery_address: null } } });
     renderApp(<App />, "/track/BK-ABC234?t=tok");
     expect(await screen.findByText(/Collect your order from: Side door on Road 9/)).toBeInTheDocument();
-    expect(screen.getByText("Ring the bell.")).toBeInTheDocument();
+    expect(within(screen.getByRole("main")).getByText("Ring the bell.")).toBeInTheDocument();
   });
 });
 

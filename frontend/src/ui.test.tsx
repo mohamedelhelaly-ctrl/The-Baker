@@ -20,7 +20,7 @@ describe("the header", () => {
     const header = await screen.findByRole("banner");
     const words = within(within(header).getByRole("navigation", { name: "Main" })).getAllByRole("link");
     expect(words.map((l) => l.textContent)).toEqual(["Menu", "Delivery", "Visit"]);
-    expect(words[2]).toHaveAttribute("href", "/#visit");
+    expect(words[2]).toHaveAttribute("href", "#visit"); // scrolls to the strip in the footer
     expect(within(header).getByRole("link", { name: "The Baker" })).toHaveAttribute("href", "/");
     expect(within(header).getByRole("link", { name: "Cart, 0 items" })).toBeInTheDocument();
     expect(within(header).getByRole("link", { name: "Sign in" })).toBeInTheDocument();
@@ -171,13 +171,44 @@ describe("shared look", () => {
     expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
   });
 
-  it("the home page lists up to five products with a price in each group", async () => {
+  it("the home page shows at most four favourites", async () => {
     const many = Array.from({ length: 6 }, (_, i) => ({ ...cake, id: 100 + i, slug: `cake-${i}`, name: `Cake ${i}` }));
     mockFetch({ ...store, ...taxonomy, "/products": { body: page(many) } });
     renderApp(<App />, "/");
-    const group = (await screen.findByRole("link", { name: "Celebration Cakes" })).closest("section")!;
-    await within(group).findByRole("link", { name: "Cake 0" });
-    expect(within(group).getAllByRole("listitem")).toHaveLength(5);
+    const favourites = (await screen.findByRole("heading", { level: 2, name: "Our favourites" })).closest("section")!;
+    await within(favourites).findByRole("link", { name: /Cake 0/ });
+    expect(within(favourites).getAllByRole("listitem")).toHaveLength(4);
+  });
+
+  it("the footer is one strip: visit, delivery and pickup, opening hours and shop, in that order, on every page", async () => {
+    mockFetch(store);
+    renderApp(<App />, "/nowhere");
+    const footer = await screen.findByRole("contentinfo");
+    const heads = within(footer).getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    expect(heads).toEqual(["Visit", "Delivery and pickup", "Opening hours", "Shop"]);
+    expect(footer).toHaveAttribute("id", "visit"); // the header's Visit word scrolls here
+  });
+
+  it("shows Road 9, Maadi then Cairo, Egypt until the owner enters an address, and the owner's address once set", async () => {
+    mockFetch(store);
+    const { unmount } = renderApp(<App />, "/nowhere");
+    const footer = await screen.findByRole("contentinfo");
+    const lines = within(footer).getByText("Road 9, Maadi");
+    expect(lines.nextElementSibling).toHaveTextContent("Cairo, Egypt");
+    expect(within(footer).getByRole("link", { name: "Get directions" }).getAttribute("href")).toContain("Road%209%2C%20Maadi%2C%20Cairo");
+    unmount();
+    mockFetch({ "/store": { body: { ...store["/store"].body, address: "5 Nile Corniche, Zamalek" } } });
+    renderApp(<App />, "/nowhere");
+    expect(await screen.findByText("5 Nile Corniche, Zamalek")).toBeInTheDocument();
+    expect(screen.queryByText("Road 9, Maadi")).not.toBeInTheDocument();
+  });
+
+  it("the weekly opening hours appear once on the home page, in the footer", async () => {
+    const hours = Array.from({ length: 7 }, (_, d) => ({ weekday: d, opens_at: "09:00:00", closes_at: "21:00:00", is_closed: false }));
+    mockFetch({ "/store": { body: { ...store["/store"].body, opening_hours: hours } }, ...taxonomy, "/products": { body: page([cake]) } });
+    renderApp(<App />, "/");
+    await screen.findByRole("heading", { level: 2, name: "Our favourites" });
+    expect(screen.getAllByText("Monday")).toHaveLength(1);
   });
 
   it("the home page says whether the bakery is open, from the hours the owner set", async () => {

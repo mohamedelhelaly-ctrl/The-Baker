@@ -3,12 +3,12 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../../lib/auth";
 import { useCart } from "../../lib/cart";
 import { WEEKDAYS, formatTime, hhmm } from "../../lib/dates";
+import { openNowLine } from "../../lib/hours";
 import { useStore } from "../../lib/store";
 import { s } from "../../lib/strings";
 import { buttonClass } from "../ui/buttonClass";
 import { AccountMenu } from "./AccountMenu";
 import { DisplayMenu } from "./DisplayMenu";
-import { PhotoCredits } from "./PhotoCredits";
 
 export function AppShell() {
   const { user, logout, can } = useAuth();
@@ -30,7 +30,9 @@ export function AppShell() {
   }
 
   const navLink = ({ isActive }: { isActive: boolean }) => `navlink ${isActive ? "navlink-active" : ""}`;
-  const hasContact = store.phone || store.whatsapp || store.email || store.address;
+  const hasContact = store.phone || store.whatsapp || store.email;
+  const address = store.address || "Road 9, Maadi"; // the owner's address (Shop details), until one is set
+  const openNow = openNowLine(opening_hours);
 
   return (
     <>
@@ -52,9 +54,9 @@ export function AppShell() {
             <NavLink to="/delivery" className={navLink}>
               Delivery
             </NavLink>
-            <Link to="/#visit" className="navlink">
+            <a href="#visit" className="navlink">
               Visit
-            </Link>
+            </a>
             {can("orders_queue") && (
               <NavLink to="/staff/orders" className={navLink}>
                 {s.nav.orders}
@@ -88,17 +90,21 @@ export function AppShell() {
       <main id="main" tabIndex={-1} className={isHome ? "" : "wrap page min-h-[70vh] py-8 sm:py-10"}>
         <Outlet />
       </main>
-      <footer id="closing" className={`closing print:hidden ${isHome ? "closing--home" : ""}`}>
-        <div className="wrap page grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4">
+      <footer id="visit" className={`closing print:hidden ${isHome ? "closing--home" : ""}`}>
+        <div className="wrap page grid gap-x-6 gap-y-10 py-12 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <h2 className="t-label mb-3">Visit</h2>
-            <p>{store.address ?? "Cairo, Egypt"}</p>
-            {store.pickup_location && <p className="mt-1 text-muted">Collect from: {store.pickup_location}</p>}
-          </div>
-          {hasContact && (
-            <div>
-              <h2 className="t-label mb-3">Contact</h2>
-              <ul className="grid gap-1">
+            <p>{address}</p>
+            <p>Cairo, Egypt</p>
+            {store.pickup_location && <p className="mt-2 text-muted">Collect from: {store.pickup_location}</p>}
+            {openNow && <p className="mt-3 font-medium">{openNow}</p>}
+            <p className="mt-3">
+              <a className="link" href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(`${address}, Cairo`)}`} target="_blank" rel="noreferrer">
+                Get directions
+              </a>
+            </p>
+            {hasContact && (
+              <ul className="mt-4 grid gap-1">
                 {store.phone && (
                   <li>
                     Phone:{" "}
@@ -124,11 +130,21 @@ export function AppShell() {
                   </li>
                 )}
               </ul>
-            </div>
-          )}
-          {opening_hours.length > 0 && (
-            <div>
-              <h2 className="t-label mb-3">Opening hours</h2>
+            )}
+          </div>
+          <div>
+            <h2 className="t-label mb-3">Delivery and pickup</h2>
+            <p>Order ahead for a delivery or pickup day and time you choose.</p>
+            {store.pickup_instructions && <p className="mt-2 text-muted">{store.pickup_instructions}</p>}
+            <p className="mt-3">
+              <Link to="/delivery" className="link">
+                Delivery areas and fees
+              </Link>
+            </p>
+          </div>
+          <div>
+            <h2 className="t-label mb-3">Opening hours</h2>
+            {opening_hours.length > 0 ? (
               <dl className="grid max-w-xs grid-cols-[6.5rem_1fr] gap-y-1 text-sm">
                 {[...opening_hours]
                   .sort((a, b) => a.weekday - b.weekday)
@@ -139,8 +155,10 @@ export function AppShell() {
                     </div>
                   ))}
               </dl>
-            </div>
-          )}
+            ) : (
+              <p className="text-muted">Hours are set by the bakery.</p>
+            )}
+          </div>
           <div>
             <h2 className="t-label mb-3">Shop</h2>
             <ul className="grid gap-1">
@@ -150,8 +168,8 @@ export function AppShell() {
                 </Link>
               </li>
               <li>
-                <Link to="/delivery" className="link">
-                  Delivery areas and fees
+                <Link to="/cart" className="link">
+                  Your cart
                 </Link>
               </li>
             </ul>
@@ -162,7 +180,6 @@ export function AppShell() {
             <p>
               {name} · {year} · Demo store, no real orders.
             </p>
-            {isHome && <PhotoCredits />}
           </div>
         </div>
       </footer>

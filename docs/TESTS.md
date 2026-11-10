@@ -7,7 +7,7 @@ cd backend  && python -m pytest        # needs the database: docker compose up -
 cd frontend && npm test
 ```
 
-**278 backend tests** (pytest, on a real PostgreSQL) and **270 frontend tests** (Vitest, Testing Library, axe). CI runs both on every push, together with the linters, the build, and a check that the database migrations apply, roll back, re-apply and match the models.
+**278 backend tests** (pytest, on a real PostgreSQL) and **273 frontend tests** (Vitest, Testing Library, axe). CI runs both on every push, together with the linters, the build, and a check that the database migrations apply, roll back, re-apply and match the models.
 
 ## How the tests are built
 
@@ -371,7 +371,7 @@ The browser test environment cannot measure colours, so the design colours thems
 | formats minor units without float surprises | Prices such as 650.00 are shown exactly |
 | parses prices strictly | `abc`, `-5`, `1.234`, `0`, `1,5` and empty are rejected |
 | describes lead times | "Order at least 2 days ahead" wording |
-| home is a photograph, the menu groups with prices, and the visit details, with no axe violations | The home page: the hero photograph, a menu group per category with prices, the visit block, the credits line, and accessibility |
+| home is a cover picture, four favourites, about us and the visit details, with no axe violations | The home page content (no price list), the about wording, and accessibility |
 | menu lists products with photos, alt text and prices, and has no axe violations | Each product shows an image with alt text and its price |
 | filters by category and sorts, sending the choice to the API | Picking a category pill and a sort option in the Filters panel reaches the server |
 | debounces typing into a single request | Typing "chocolate" sends one search, not nine |
@@ -617,7 +617,7 @@ The browser test environment cannot measure colours, so the design colours thems
 | the skip link is the first thing a keyboard user reaches and it targets the main content | First Tab stop is "skip to content" |
 | every page has exactly one level-one heading | Page structure on four routes |
 
-## `ui.test.tsx`: header, account menu, menu filters, shared look (17)
+## `ui.test.tsx`: header, account menu, menu filters, shared look (20)
 
 | Test | What it proves |
 |---|---|
@@ -635,6 +635,9 @@ The browser test environment cannot measure colours, so the design colours thems
 | closes the panel with Escape | Keyboard behaviour of the Filters panel |
 | has no axe violations with the panel open | The open panel passes the checker |
 | the 404 page offers one way home | One clear button on the not-found page |
-| the home page lists up to five products with a price in each group | Each menu group on the home page shows at most five products |
+| the home page shows at most four favourites | The favourites row never shows more than four tiles |
+| the footer is one strip: visit, delivery and pickup, opening hours and shop, in that order, on every page | The four footer columns and the anchor the header's Visit word scrolls to |
+| shows Road 9, Maadi then Cairo, Egypt until the owner enters an address, and the owner's address once set | The default address lines, the directions link, and the owner's own address taking over |
+| the weekly opening hours appear once on the home page, in the footer | The week's hours are not repeated in the page body |
 | the home page says whether the bakery is open, from the hours the owner set | The "Open now, until ..." line comes only from real opening hours |
 | the order page shows progress as a list with done, current and not-yet steps | The timeline marks each step and announces done, current and not yet |
